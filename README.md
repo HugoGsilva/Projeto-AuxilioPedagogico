@@ -1,99 +1,51 @@
-# auxilio-pedagogico
+# Auxílio Pedagógico
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Router, Hono, TRPC, and more.
+Plataforma para registro, acompanhamento e impressão de **estudos de caso de alunos com necessidades especiais**, construída para uso real em escola: controle de acesso por perfil, formulário configurável, relatório livre da professora, geração de PDF e **auditoria completa** das ações.
 
-## Features
+## Documentação
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Router** - File-based routing with full type safety
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **Hono** - Lightweight, performant server framework
-- **tRPC** - End-to-end type-safe APIs
-- **Bun** - Runtime environment
-- **Drizzle** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Authentication** - Better-Auth
-- **Turborepo** - Optimized monorepo build system
+| Documento | Conteúdo |
+| --- | --- |
+| [`docs/especificacao.md`](docs/especificacao.md) | Especificação funcional completa |
+| [`docs/mvp.md`](docs/mvp.md) | Escopo da primeira entrega |
+| [`docs/adr/`](docs/adr/) | Decisões de arquitetura (stack, permissões, auditoria, PDF, LGPD…) |
+| [`docs/glossario.md`](docs/glossario.md) | Vocabulário do domínio pt↔en |
 
-## Getting Started
+## Stack
 
-First, install the dependencies:
+Monorepo **Turborepo** ([ADR-0001](docs/adr/0001-stack-better-t-stack.md)):
+
+- `apps/web` — React SPA (TanStack Router, shadcn/ui, Tailwind);
+- `apps/server` — Hono + tRPC em Bun;
+- `packages/db` — PostgreSQL + Drizzle ORM;
+- `packages/auth` — Better Auth (sessões em banco, sem auto-cadastro);
+- `packages/api`, `packages/ui`, `packages/env`, `packages/config` — código compartilhado.
+
+## Como rodar
+
+Pré-requisitos: [Bun](https://bun.sh) e Docker.
 
 ```bash
 bun install
+
+# variáveis de ambiente (nunca commitar os .env)
+cp apps/server/.env.example apps/server/.env   # preencher BETTER_AUTH_SECRET
+cp apps/web/.env.example apps/web/.env
+
+bun run db:start   # Postgres via Docker
+bun run db:push    # aplica o schema
+bun run dev        # web em :3001, API em :3000
 ```
 
-## Database Setup
+## Scripts úteis
 
-This project uses PostgreSQL with Drizzle ORM.
+- `bun run dev` / `dev:web` / `dev:server` — desenvolvimento;
+- `bun run build` — build de todos os apps;
+- `bun run check-types` — typecheck do monorepo;
+- `bun run db:push` / `db:generate` / `db:migrate` / `db:studio` — banco.
 
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/server/.env` file with your PostgreSQL connection details.
+## Contribuindo
 
-3. Apply the schema to your database:
-
-```bash
-bun run db:push
-```
-
-Then, run the development server:
-
-```bash
-bun run dev
-```
-
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
-The API is running at [http://localhost:3000](http://localhost:3000).
-
-## UI Customization
-
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
-
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
-
-### Add more shared components
-
-Run this from the project root to add more primitives to the shared UI package:
-
-```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
-```
-
-Import shared components like this:
-
-```tsx
-import { Button } from "@auxilio-pedagogico/ui/components/button";
-```
-
-### Add app-specific blocks
-
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
-
-## Project Structure
-
-```
-auxilio-pedagogico/
-├── apps/
-│   ├── web/         # Frontend application (React + TanStack Router)
-│   └── server/      # Backend API (Hono, TRPC)
-├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
-│   ├── api/         # API layer / business logic
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
-```
-
-## Available Scripts
-
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run dev:server`: Start only the server
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run db:push`: Push schema changes to database
-- `bun run db:generate`: Generate database client/types
-- `bun run db:migrate`: Run database migrations
-- `bun run db:studio`: Open database studio UI
+- Trabalhe em branch e abra PR para `main` (branch protegida, CI obrigatória).
+- Código em inglês, UI/commits/issues em português ([ADR-0007](docs/adr/0007-idioma-do-codigo.md)).
+- Toda mutation nova deve gravar auditoria ([ADR-0004](docs/adr/0004-auditoria-append-only.md)).
