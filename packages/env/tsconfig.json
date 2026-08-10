@@ -1,0 +1,3 @@
+{
+  "extends": "@auxilio-pedagogico/config/tsconfig.base.json"
+}
