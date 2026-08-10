@@ -10,6 +10,7 @@ Plataforma para registro, acompanhamento e impressão de **estudos de caso de al
 | [`docs/mvp.md`](docs/mvp.md) | Escopo da primeira entrega |
 | [`docs/adr/`](docs/adr/) | Decisões de arquitetura (stack, permissões, auditoria, PDF, LGPD…) |
 | [`docs/glossario.md`](docs/glossario.md) | Vocabulário do domínio pt↔en |
+| [`docs/diario-de-bordo.md`](docs/diario-de-bordo.md) | Horas gastas por feature (uma entrada por PR) |
 
 ## Stack
 
