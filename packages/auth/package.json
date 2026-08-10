@@ -1,0 +1,24 @@
+{
+  "name": "@auxilio-pedagogico/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@auxilio-pedagogico/db": "workspace:*",
+    "@auxilio-pedagogico/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@auxilio-pedagogico/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
