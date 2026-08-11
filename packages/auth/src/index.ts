@@ -4,20 +4,20 @@ import { env } from "@auxilio-pedagogico/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
+import { recordLoginAudit } from "./login-audit";
+
 export function createAuth() {
   const db = createDb();
 
   return betterAuth({
     database: drizzleAdapter(db, {
       provider: "pg",
-
       schema: schema,
     }),
     trustedOrigins: [env.CORS_ORIGIN],
     emailAndPassword: {
       enabled: true,
-      // ADR-0002: no public self-signup; accounts are created by admins.
-      // Required before shipping `role` default — otherwise signup grants teacher.
+      // ADR-0002 / issue #5: no public self-signup; accounts created by admins.
       disableSignUp: true,
     },
     user: {
@@ -27,6 +27,20 @@ export function createAuth() {
           required: true,
           defaultValue: "teacher",
           input: false,
+        },
+      },
+    },
+    databaseHooks: {
+      session: {
+        create: {
+          after: async (session, ctx) => {
+            // Session already persisted by Better Auth; never block sign-in on audit failure.
+            try {
+              await recordLoginAudit(db, session, ctx);
+            } catch (error) {
+              console.error("[auth] falha ao gravar audit_log de login", error);
+            }
+          },
         },
       },
     },
