@@ -25,7 +25,7 @@ Não existe arquivo de status — o estado vivo do projeto está em:
 6. **Permissões**: verificação sempre no servidor via módulo de policy (ADR-0002), nunca só na UI. `it_admin` não acessa dados de alunos; `teacher` só vê alunos atribuídos.
 7. **Snapshot de perguntas** (ADR-0003): documentos antigos exibem o snapshot, nunca o texto atual da pergunta.
 8. **Não desfaça decisões de ADR silenciosamente** — se discordar, discuta com o time e registre um ADR substituto.
-9. **Diário de bordo**: todo PR adiciona uma linha em `docs/diario-de-bordo.md` (data, dev, com IA, ref, horas, notas) na seção do milestone correspondente.
+9. **Diário de bordo**: todo PR adiciona uma linha em `docs/diario-de-bordo.md` (data, dev, ref, horas, notas) na seção do milestone correspondente.
 
 ## Regras de commit (obrigatórias)
 
