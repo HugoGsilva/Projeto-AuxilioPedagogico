@@ -8,7 +8,7 @@ export const router = t.router;
 
 export const publicProcedure = t.procedure;
 
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   if (!ctx.session) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
@@ -16,6 +16,15 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
       cause: "No session",
     });
   }
+
+  const active = (ctx.session.user as { active?: boolean }).active;
+  if (active === false) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Conta desativada",
+    });
+  }
+
   return next({
     ctx: {
       ...ctx,

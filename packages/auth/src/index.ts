@@ -3,6 +3,7 @@ import * as schema from "@auxilio-pedagogico/db/schema/auth";
 import { env } from "@auxilio-pedagogico/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { eq } from "drizzle-orm";
 
 import { recordLoginAudit } from "./login-audit";
 
@@ -28,11 +29,27 @@ export function createAuth() {
           defaultValue: "teacher",
           input: false,
         },
+        active: {
+          type: "boolean",
+          required: true,
+          defaultValue: true,
+          input: false,
+        },
       },
     },
     databaseHooks: {
       session: {
         create: {
+          before: async (session) => {
+            const [row] = await db
+              .select({ active: schema.user.active })
+              .from(schema.user)
+              .where(eq(schema.user.id, session.userId))
+              .limit(1);
+            if (row && row.active === false) {
+              return false;
+            }
+          },
           after: async (session, ctx) => {
             // Session already persisted by Better Auth; never block sign-in on audit failure.
             try {
