@@ -29,7 +29,9 @@ Não existe arquivo de status — o estado vivo do projeto está em:
 
 ## Regras de commit (obrigatórias)
 
-- Autor: a conta do próprio dev. **Nunca adicionar `Co-Authored-By`** nem qualquer trailer de co-autoria de IA.
+- Autor: a conta do próprio dev. **Nunca adicionar `Co-Authored-By`** nem qualquer trailer de co-autoria de IA (`Cursor`, `cursoragent@cursor.com`, `Made-with: Cursor`, etc.).
+- No Cursor IDE: desligar **Settings → Git & PRs → Attribution** (Commit e PR). No CLI: `~/.cursor/cli-config.json` com `attributeCommitsToAgent` / `attributePRsToAgent` = `false`.
+- Ativar o hook local que remove trailers injetados: `git config core.hooksPath .githooks`.
 - Conventional commits com mensagem em **português** (`feat: cadastro de alunos`).
 
 ## Idioma (ADR-0007)

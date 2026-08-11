@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Strip Cursor/AI co-author trailers that the IDE may inject on agent commits.
+# Enable with: git config core.hooksPath .githooks
+set -euo pipefail
+
+msg_file="${1:-}"
+if [[ -z "$msg_file" || ! -f "$msg_file" ]]; then
+  exit 0
+fi
+
+# Portable in-place edit (GNU/BSD sed)
+tmp="$(mktemp)"
+sed -E \
+  -e '/^Co-authored-by:[[:space:]]*Cursor[[:space:]]*<cursoragent@cursor\.com>[[:space:]]*$/Id' \
+  -e '/^Made-with:[[:space:]]*Cursor[[:space:]]*$/Id' \
+  -e '/^Co-authored-by:[[:space:]]*.*cursor\.com.*>[[:space:]]*$/Id' \
+  "$msg_file" > "$tmp"
+mv "$tmp" "$msg_file"
