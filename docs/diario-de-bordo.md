@@ -35,3 +35,4 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | Data | Dev | Ref | Horas | Notas |
 | --- | --- | --- | --- | --- |
 | 2026-08-11 | Hugo | #8 | 1,0 | CRUD de alunos + remoção da coluna "Com IA" do diário |
+| 2026-08-11 | Hugo | #9 | 0,5 | Atribuição aluno↔professora com filtro no servidor |

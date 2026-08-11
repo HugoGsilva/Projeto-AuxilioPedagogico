@@ -8,6 +8,7 @@ export default function Header() {
     { to: "/", label: "Início" },
     { to: "/dashboard", label: "Painel" },
     { to: "/students", label: "Alunos" },
+    { to: "/assignments", label: "Atribuições" },
     { to: "/users", label: "Usuários" },
   ] as const;
 
