@@ -19,3 +19,4 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | --- | --- | --- | --- | --- | --- |
 | 2026-08-11 | Hugo | Sim | #1 | 1,0 | Schema Drizzle do domínio + migration; `role` no user; `disableSignUp` (fix Bugbot) |
 | 2026-08-11 | Hugo | Sim | #2 | 0,5 | Módulo de policy de roles (matriz ADR-0002) + testes bun |
+| 2026-08-11 | Hugo | Sim | #3 | 0,5 | Helper/middleware tRPC de auditoria (`withAuditedMutation` / `auditedProcedure`) |
