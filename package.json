@@ -36,6 +36,7 @@
     "db:studio": "turbo run db:studio -F @auxilio-pedagogico/db",
     "db:generate": "turbo run db:generate -F @auxilio-pedagogico/db",
     "db:migrate": "turbo run db:migrate -F @auxilio-pedagogico/db",
+    "db:seed": "turbo run db:seed -F @auxilio-pedagogico/db",
     "db:start": "turbo run db:start -F @auxilio-pedagogico/db",
     "db:watch": "turbo run db:watch -F @auxilio-pedagogico/db",
     "db:stop": "turbo run db:stop -F @auxilio-pedagogico/db",
