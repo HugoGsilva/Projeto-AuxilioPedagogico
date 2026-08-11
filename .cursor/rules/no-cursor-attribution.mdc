@@ -1,0 +1,10 @@
+---
+description: Proíbe trailers de atribuição Cursor/IA em commits e PRs
+alwaysApply: true
+---
+
+# Sem atribuição Cursor
+
+- Nunca adicionar `Co-authored-by: Cursor`, `Made-with: Cursor`, `cursoragent@cursor.com` ou qualquer trailer de co-autoria de IA.
+- Autor do commit = conta do desenvolvedor humano apenas.
+- Não usar `git commit --trailer` para atribuição do Cursor.
