@@ -27,3 +27,4 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | Data | Dev | Com IA | Ref | Horas | Notas |
 | --- | --- | --- | --- | --- | --- |
 | 2026-08-11 | Hugo | Sim | #5 | 0,5 | Better Auth: login → audit_log; confirma disableSignUp + role |
+| 2026-08-11 | Hugo | Sim | #6 | 0,5 | Tela de login única em português (sem cadastro) |
