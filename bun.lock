@@ -115,6 +115,7 @@
       "name": "@auxilio-pedagogico/db",
       "dependencies": {
         "@auxilio-pedagogico/env": "workspace:*",
+        "better-auth": "catalog:",
         "dotenv": "catalog:",
         "drizzle-orm": "^0.45.2",
         "pg": "^8.22.0",
