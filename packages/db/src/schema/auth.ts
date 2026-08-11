@@ -10,6 +10,8 @@ export const user = pgTable("user", {
   image: text("image"),
   /** Fixed role — ADR-0002; set by admins only (no self-signup). */
   role: userRoleEnum("role").default("teacher").notNull(),
+  /** Soft-deactivate instead of physical delete (issue #7). */
+  active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

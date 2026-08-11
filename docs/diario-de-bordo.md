@@ -28,3 +28,4 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | --- | --- | --- | --- | --- | --- |
 | 2026-08-11 | Hugo | Sim | #5 | 0,5 | Better Auth: login → audit_log; confirma disableSignUp + role |
 | 2026-08-11 | Hugo | Sim | #6 | 0,5 | Tela de login única em português (sem cadastro) |
+| 2026-08-11 | Hugo | Sim | #7 | 1,0 | CRUD usuários admin (create/update/desativar) + migration `active` |
