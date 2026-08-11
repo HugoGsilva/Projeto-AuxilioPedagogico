@@ -16,6 +16,19 @@ export function createAuth() {
     trustedOrigins: [env.CORS_ORIGIN],
     emailAndPassword: {
       enabled: true,
+      // ADR-0002: no public self-signup; accounts are created by admins.
+      // Required before shipping `role` default — otherwise signup grants teacher.
+      disableSignUp: true,
+    },
+    user: {
+      additionalFields: {
+        role: {
+          type: "string",
+          required: true,
+          defaultValue: "teacher",
+          input: false,
+        },
+      },
     },
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
