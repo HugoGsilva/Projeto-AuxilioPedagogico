@@ -36,3 +36,10 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | --- | --- | --- | --- | --- |
 | 2026-08-11 | Hugo | #8 | 1,0 | CRUD de alunos + remoção da coluna "Com IA" do diário |
 | 2026-08-11 | Hugo | #9 | 0,5 | Atribuição aluno↔professora com filtro no servidor |
+
+## M4 — Perguntas configuráveis
+
+| Data | Dev | Ref | Horas | Notas |
+| --- | --- | --- | --- | --- |
+| 2026-08-13 | Hugo | #10 | 1,0 | CRUD de perguntas (tipos, opções, ativar/desativar) + auditoria |
+| 2026-08-13 | Hugo | #11 | 0,5 | UI de ordenação e agrupamento por seção (`sortOrder`) |
