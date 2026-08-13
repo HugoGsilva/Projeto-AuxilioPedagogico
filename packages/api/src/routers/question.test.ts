@@ -90,9 +90,48 @@ describe("questionCreateSchema", () => {
     });
     expect(parsed.options).toBeNull();
   });
+
+  test("requires options for multiple_choice", () => {
+    expect(() =>
+      questionCreateSchema.parse({
+        prompt: "Nível de autonomia nas atividades",
+        type: "multiple_choice",
+        options: null,
+      }),
+    ).toThrow();
+  });
+
+  test("defaults required to false and trims prompt", () => {
+    const parsed = questionCreateSchema.parse({
+      prompt: "  Nome social do aluno  ",
+      type: "short_text",
+    });
+    expect(parsed.prompt).toBe("Nome social do aluno");
+    expect(parsed.required).toBe(false);
+    expect(parsed.options).toBeNull();
+  });
+
+  test("rejects invalid type and negative sortOrder", () => {
+    expect(() =>
+      questionCreateSchema.parse({
+        prompt: "Enunciado válido aqui",
+        type: "checkbox",
+      }),
+    ).toThrow();
+
+    expect(() =>
+      questionCreateSchema.parse({
+        prompt: "Enunciado válido aqui",
+        type: "short_text",
+        sortOrder: -1,
+      }),
+    ).toThrow();
+  });
 });
 
 describe("questionUpdateSchema", () => {
+  const validId = "11111111-1111-4111-8111-111111111111";
+
   test("requires uuid id", () => {
     expect(() =>
       questionUpdateSchema.parse({
@@ -103,11 +142,64 @@ describe("questionUpdateSchema", () => {
     ).toThrow();
 
     const parsed = questionUpdateSchema.parse({
-      id: "11111111-1111-4111-8111-111111111111",
+      id: validId,
       prompt: "Data da última avaliação",
       type: "date",
     });
-    expect(parsed.id).toBe("11111111-1111-4111-8111-111111111111");
+    expect(parsed.id).toBe(validId);
+  });
+
+  test("rejects short prompt", () => {
+    expect(() =>
+      questionUpdateSchema.parse({
+        id: validId,
+        prompt: "ok",
+        type: "long_text",
+      }),
+    ).toThrow();
+  });
+
+  test("requires options for multiple_choice and select", () => {
+    expect(() =>
+      questionUpdateSchema.parse({
+        id: validId,
+        prompt: "Preferência de material de apoio",
+        type: "multiple_choice",
+        options: [],
+      }),
+    ).toThrow();
+
+    expect(() =>
+      questionUpdateSchema.parse({
+        id: validId,
+        prompt: "Turno de maior dificuldade",
+        type: "select",
+      }),
+    ).toThrow();
+  });
+
+  test("accepts select with options and clears blank section", () => {
+    const parsed = questionUpdateSchema.parse({
+      id: validId,
+      prompt: "Turno de maior dificuldade",
+      type: "select",
+      section: "  ",
+      options: ["  Manhã ", "Tarde"],
+      required: true,
+    });
+    expect(parsed.section).toBeNull();
+    expect(parsed.options).toEqual(["Manhã", "Tarde"]);
+    expect(parsed.required).toBe(true);
+  });
+
+  test("forces options to null for short_text even if provided", () => {
+    const parsed = questionUpdateSchema.parse({
+      id: validId,
+      prompt: "Nome do responsável pedagógico",
+      type: "short_text",
+      options: ["A", "B"],
+    });
+    expect(parsed.options).toBeNull();
   });
 });
 
@@ -131,6 +223,25 @@ describe("questionReorderSchema", () => {
 
   test("rejects empty items", () => {
     expect(() => questionReorderSchema.parse({ items: [] })).toThrow();
+  });
+
+  test("rejects invalid item id or negative sortOrder", () => {
+    expect(() =>
+      questionReorderSchema.parse({
+        items: [{ id: "bad", sortOrder: 0 }],
+      }),
+    ).toThrow();
+
+    expect(() =>
+      questionReorderSchema.parse({
+        items: [
+          {
+            id: "11111111-1111-4111-8111-111111111111",
+            sortOrder: -1,
+          },
+        ],
+      }),
+    ).toThrow();
   });
 });
 
@@ -157,5 +268,14 @@ describe("applyReorderMove", () => {
     expect(applyReorderMove(ids, "a", "up")).toBeNull();
     expect(applyReorderMove(ids, "c", "down")).toBeNull();
     expect(applyReorderMove(ids, "z", "up")).toBeNull();
+  });
+
+  test("swaps two items and no-ops on single list", () => {
+    expect(applyReorderMove(["x", "y"], "y", "up")).toEqual([
+      { id: "y", sortOrder: 0 },
+      { id: "x", sortOrder: 1 },
+    ]);
+    expect(applyReorderMove(["only"], "only", "up")).toBeNull();
+    expect(applyReorderMove(["only"], "only", "down")).toBeNull();
   });
 });
