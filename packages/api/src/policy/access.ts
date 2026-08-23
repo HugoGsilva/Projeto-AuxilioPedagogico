@@ -99,3 +99,16 @@ export function assertCanAccessStudent(
     });
   }
 }
+
+export function assertCanViewOrEditCaseStudy(
+  actor: Actor,
+  permission: "viewCaseStudy" | "editCaseStudy",
+  input: { studentId: string; assignedStudentIds: ReadonlySet<string> | readonly string[] },
+): void {
+  if (!canViewOrEditCaseStudy(actor, permission, input)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Permissão negada: acesso ao estudo de caso",
+    });
+  }
+}

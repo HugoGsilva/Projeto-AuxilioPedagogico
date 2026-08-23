@@ -2,7 +2,7 @@ import { Button } from "@auxilio-pedagogico/ui/components/button";
 import { Input } from "@auxilio-pedagogico/ui/components/input";
 import { Label } from "@auxilio-pedagogico/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -28,6 +28,8 @@ function StudentsPage() {
   const { data: session } = authClient.useSession();
   const role = (session?.user as { role?: string } | undefined)?.role;
   const canManage = role === "director" || role === "pedagogue";
+  const canViewCaseStudies =
+    role === "director" || role === "pedagogue" || role === "teacher";
 
   const studentsQuery = useQuery({
     ...trpc.student.list.queryOptions(),
@@ -215,7 +217,7 @@ function StudentsPage() {
                   <th className="px-3 py-2 font-medium">Turno</th>
                   <th className="px-3 py-2 font-medium">Responsável</th>
                   <th className="px-3 py-2 font-medium">Situação</th>
-                  {canManage ? (
+                  {canViewCaseStudies ? (
                     <th className="px-3 py-2 font-medium">Ações</th>
                   ) : null}
                 </tr>
@@ -235,37 +237,48 @@ function StudentsPage() {
                     <td className="px-3 py-2">
                       {s.active ? "Ativo" : "Inativo"}
                     </td>
-                    {canManage ? (
+                    {canViewCaseStudies ? (
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setEditingId(s.id);
-                              setName(s.name);
-                              setClassName(s.className ?? "");
-                              setBirthDate(s.birthDate ?? "");
-                              setGuardian(s.guardian ?? "");
-                              setShift((s.shift as Shift | null) ?? "");
-                              setNotes(s.notes ?? "");
-                            }}
+                          <Link
+                            to="/students/$studentId"
+                            params={{ studentId: s.id }}
+                            className="inline-flex h-7 items-center rounded-none border border-border bg-background px-2.5 text-xs hover:bg-muted"
                           >
-                            Editar
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={setActiveMutation.isPending}
-                            onClick={() =>
-                              setActiveMutation.mutate({
-                                id: s.id,
-                                active: !s.active,
-                              })
-                            }
-                          >
-                            {s.active ? "Desativar" : "Reativar"}
-                          </Button>
+                            Estudos de caso
+                          </Link>
+                          {canManage ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingId(s.id);
+                                  setName(s.name);
+                                  setClassName(s.className ?? "");
+                                  setBirthDate(s.birthDate ?? "");
+                                  setGuardian(s.guardian ?? "");
+                                  setShift((s.shift as Shift | null) ?? "");
+                                  setNotes(s.notes ?? "");
+                                }}
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={setActiveMutation.isPending}
+                                onClick={() =>
+                                  setActiveMutation.mutate({
+                                    id: s.id,
+                                    active: !s.active,
+                                  })
+                                }
+                              >
+                                {s.active ? "Desativar" : "Reativar"}
+                              </Button>
+                            </>
+                          ) : null}
                         </div>
                       </td>
                     ) : null}

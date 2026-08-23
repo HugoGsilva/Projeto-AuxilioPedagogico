@@ -63,6 +63,21 @@ export const questionRouter = router({
       );
   }),
 
+  /** Active questions for filling a case study. Teachers cannot use `list`. */
+  listActive: protectedProcedure.query(async ({ ctx }) => {
+    assertCan(actorFromSession(ctx.session.user).role, "viewCaseStudy");
+
+    return db
+      .select(questionSelect)
+      .from(question)
+      .where(eq(question.active, true))
+      .orderBy(
+        asc(question.section),
+        asc(question.sortOrder),
+        asc(question.prompt),
+      );
+  }),
+
   create: auditedProcedure
     .input(questionCreateSchema)
     .mutation(async ({ ctx, input }) => {

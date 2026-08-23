@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
+import { TRPCError } from "@trpc/server";
+
 import {
+  assertCanViewOrEditCaseStudy,
   can,
   canAccessStudent,
   canViewAuditEntry,
@@ -160,6 +163,80 @@ describe("canViewOrEditCaseStudy", () => {
         { studentId: "s1", assignedStudentIds: ["s1"] },
       ),
     ).toBe(false);
+    expect(
+      canViewOrEditCaseStudy(
+        { id: "ti", role: "it_admin" },
+        "editCaseStudy",
+        { studentId: "s1", assignedStudentIds: ["s1"] },
+      ),
+    ).toBe(false);
+  });
+
+  test("listActive permission is viewCaseStudy so it_admin is blocked", () => {
+    expect(can("it_admin", "viewCaseStudy")).toBe(false);
+    expect(can("teacher", "viewCaseStudy")).toBe(true);
+    expect(can("director", "viewCaseStudy")).toBe(true);
+    expect(can("pedagogue", "viewCaseStudy")).toBe(true);
+  });
+});
+
+describe("assertCanViewOrEditCaseStudy", () => {
+  test("throws FORBIDDEN in Portuguese for it_admin", () => {
+    try {
+      assertCanViewOrEditCaseStudy(
+        { id: "ti", role: "it_admin" },
+        "viewCaseStudy",
+        { studentId: "s1", assignedStudentIds: ["s1"] },
+      );
+      throw new Error("expected FORBIDDEN");
+    } catch (error) {
+      expect(error).toBeInstanceOf(TRPCError);
+      expect((error as TRPCError).code).toBe("FORBIDDEN");
+      expect((error as TRPCError).message).toBe(
+        "Permissão negada: acesso ao estudo de caso",
+      );
+    }
+  });
+
+  test("throws FORBIDDEN for teacher without assignment", () => {
+    try {
+      assertCanViewOrEditCaseStudy(
+        { id: "t1", role: "teacher" },
+        "editCaseStudy",
+        { studentId: "s1", assignedStudentIds: ["other"] },
+      );
+      throw new Error("expected FORBIDDEN");
+    } catch (error) {
+      expect(error).toBeInstanceOf(TRPCError);
+      expect((error as TRPCError).code).toBe("FORBIDDEN");
+    }
+  });
+
+  test("allows teacher when assigned", () => {
+    expect(() =>
+      assertCanViewOrEditCaseStudy(
+        { id: "t1", role: "teacher" },
+        "editCaseStudy",
+        { studentId: "s1", assignedStudentIds: ["s1"] },
+      ),
+    ).not.toThrow();
+  });
+
+  test("allows director without an assignment list", () => {
+    expect(() =>
+      assertCanViewOrEditCaseStudy(
+        { id: "d1", role: "director" },
+        "editCaseStudy",
+        { studentId: "s1", assignedStudentIds: [] },
+      ),
+    ).not.toThrow();
+    expect(
+      canViewOrEditCaseStudy(
+        { id: "d1", role: "director" },
+        "viewCaseStudy",
+        { studentId: "any-student", assignedStudentIds: [] },
+      ),
+    ).toBe(true);
   });
 });
 
