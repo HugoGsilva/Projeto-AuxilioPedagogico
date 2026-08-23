@@ -6,6 +6,23 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Alavancas de tema — mude o visual AQUI, nunca nas telas.
+ *
+ * Identidade: suave e acessível (público com baixa familiaridade digital).
+ * Cantos arredondados, texto legível, alvos de toque generosos, foco visível
+ * forte. Acento = azul calmo (--primary) para guiar o olho até a ação principal;
+ * o resto permanece neutro.
+ *
+ * - Cor de acento: mude --primary e --ring (a mesma cor-semente azul). Para
+ *   trocar toda a paleta, gere uma escala a partir de UMA cor-semente e
+ *   substitua os valores semânticos abaixo (:root / .dark).
+ * - Arredondamento: --radius. Os primitivos herdam via rounded-md/rounded-lg —
+ *   mudar aqui reflete em tudo.
+ * - Densidade/fonte: --font-sans e os tamanhos dos primitivos em packages/ui.
+ * Regra: nenhuma tela nomeia cor/hex/px — só tokens semânticos.
+ */
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -13,7 +30,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.52 0.15 255);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -22,9 +39,11 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.58 0.22 27);
+  --success: oklch(0.55 0.15 145);
+  --success-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: oklch(0.52 0.15 255);
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
@@ -48,8 +67,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.87 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.62 0.15 255);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -57,9 +76,11 @@
   --accent: oklch(0.371 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.7 0.15 145);
+  --success-foreground: oklch(0.205 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.62 0.15 255);
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
@@ -94,6 +115,8 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);

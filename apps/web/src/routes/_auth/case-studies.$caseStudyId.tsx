@@ -5,8 +5,9 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@auxilio-pedagogico/ui/components/empty";
+import { Field, FieldLabel } from "@auxilio-pedagogico/ui/components/field";
 import { Input } from "@auxilio-pedagogico/ui/components/input";
-import { Label } from "@auxilio-pedagogico/ui/components/label";
+import { Select } from "@auxilio-pedagogico/ui/components/select";
 import { Skeleton } from "@auxilio-pedagogico/ui/components/skeleton";
 import { Textarea } from "@auxilio-pedagogico/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +15,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
@@ -63,9 +65,7 @@ function CaseStudyFormPage() {
   const { caseStudyId } = Route.useParams();
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  const canEdit =
-    role === "director" || role === "pedagogue" || role === "teacher";
+  const canEdit = useRole().can("editCaseStudy");
 
   const caseStudyQuery = useQuery({
     ...trpc.caseStudy.byId.queryOptions({ id: caseStudyId }),
@@ -233,11 +233,10 @@ function CaseStudyFormPage() {
                 const fieldId = `answer-${field.questionId}`;
                 const value = values[field.questionId] ?? "";
                 return (
-                  <div key={field.questionId} className="space-y-2">
-                    <Label htmlFor={fieldId}>
+                  <Field key={field.questionId}>
+                    <FieldLabel htmlFor={fieldId} required={field.required}>
                       {field.prompt}
-                      {field.required ? " *" : ""}
-                    </Label>
+                    </FieldLabel>
                     {field.type === "long_text" ? (
                       <Textarea
                         id={fieldId}
@@ -281,9 +280,8 @@ function CaseStudyFormPage() {
                         }
                       />
                     ) : typeNeedsOptions(field.type) ? (
-                      <select
+                      <Select
                         id={fieldId}
-                        className="h-8 w-full rounded-none border border-input bg-transparent px-2.5 text-xs"
                         value={value}
                         required={field.required}
                         disabled={!canEdit}
@@ -300,7 +298,7 @@ function CaseStudyFormPage() {
                             {option}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     ) : (
                       <Input
                         id={fieldId}
@@ -315,7 +313,7 @@ function CaseStudyFormPage() {
                         }
                       />
                     )}
-                  </div>
+                  </Field>
                 );
               })}
             </section>

@@ -1,11 +1,22 @@
+import { Badge } from "@auxilio-pedagogico/ui/components/badge";
 import { Button } from "@auxilio-pedagogico/ui/components/button";
+import { Field, FieldLabel } from "@auxilio-pedagogico/ui/components/field";
 import { Input } from "@auxilio-pedagogico/ui/components/input";
-import { Label } from "@auxilio-pedagogico/ui/components/label";
+import { Select } from "@auxilio-pedagogico/ui/components/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@auxilio-pedagogico/ui/components/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { QueryState } from "@/components/query-state";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_auth/users")({
@@ -78,7 +89,7 @@ function UsersPage() {
         </p>
       </div>
 
-      <section className="space-y-4 border border-border p-4">
+      <section className="space-y-4 rounded-lg border border-border p-5">
         <h2 className="font-medium">Novo usuário</h2>
         <form
           className="grid gap-4 sm:grid-cols-2"
@@ -87,17 +98,21 @@ function UsersPage() {
             createMutation.mutate({ name, email, password, role });
           }}
         >
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome</Label>
+          <Field>
+            <FieldLabel htmlFor="name" required>
+              Nome
+            </FieldLabel>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="email" required>
+              E-mail
+            </FieldLabel>
             <Input
               id="email"
               type="email"
@@ -105,9 +120,11 @@ function UsersPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha inicial</Label>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="password" required>
+              Senha inicial
+            </FieldLabel>
             <Input
               id="password"
               type="password"
@@ -116,12 +133,11 @@ function UsersPage() {
               minLength={8}
               required
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="role">Perfil</Label>
-            <select
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="role">Perfil</FieldLabel>
+            <Select
               id="role"
-              className="h-8 w-full rounded-none border border-input bg-transparent px-2.5 text-xs"
               value={role}
               onChange={(e) =>
                 setRole(e.target.value as (typeof ROLE_OPTIONS)[number])
@@ -132,8 +148,8 @@ function UsersPage() {
                   {ROLE_LABELS[value]}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
           <div className="sm:col-span-2">
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Criando…" : "Criar usuário"}
@@ -144,30 +160,34 @@ function UsersPage() {
 
       <section className="space-y-3">
         <h2 className="font-medium">Lista</h2>
-        {usersQuery.isLoading ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
-        ) : usersQuery.isError ? (
-          <p className="text-sm text-destructive">{usersQuery.error.message}</p>
-        ) : (
-          <div className="overflow-x-auto border border-border">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-border bg-muted/40">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Nome</th>
-                  <th className="px-3 py-2 font-medium">E-mail</th>
-                  <th className="px-3 py-2 font-medium">Perfil</th>
-                  <th className="px-3 py-2 font-medium">Situação</th>
-                  <th className="px-3 py-2 font-medium">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usersQuery.data?.map((u) => (
-                  <tr key={u.id} className="border-b border-border last:border-0">
-                    <td className="px-3 py-2">{u.name}</td>
-                    <td className="px-3 py-2">{u.email}</td>
-                    <td className="px-3 py-2">
-                      <select
-                        className="h-8 rounded-none border border-input bg-transparent px-2 text-xs"
+        <QueryState
+          query={usersQuery}
+          isEmpty={(rows) => rows.length === 0}
+          empty={
+            <p className="text-sm text-muted-foreground">
+              Nenhum usuário cadastrado.
+            </p>
+          }
+        >
+          {(users) => (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>E-mail</TableHead>
+                  <TableHead>Perfil</TableHead>
+                  <TableHead>Situação</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell>{u.name}</TableCell>
+                    <TableCell>{u.email}</TableCell>
+                    <TableCell>
+                      <Select
+                        className="w-auto"
                         value={u.role}
                         disabled={updateMutation.isPending}
                         onChange={(e) =>
@@ -182,12 +202,14 @@ function UsersPage() {
                             {ROLE_LABELS[value]}
                           </option>
                         ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-2">
-                      {u.active ? "Ativo" : "Desativado"}
-                    </td>
-                    <td className="px-3 py-2">
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={u.active ? "success" : "muted"}>
+                        {u.active ? "Ativo" : "Desativado"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <Button
                         variant="outline"
                         size="sm"
@@ -201,13 +223,13 @@ function UsersPage() {
                       >
                         {u.active ? "Desativar" : "Reativar"}
                       </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </TableBody>
+            </Table>
+          )}
+        </QueryState>
       </section>
     </div>
   );

@@ -1,12 +1,26 @@
+import { Badge } from "@auxilio-pedagogico/ui/components/badge";
 import { Button } from "@auxilio-pedagogico/ui/components/button";
+import { Checkbox } from "@auxilio-pedagogico/ui/components/checkbox";
+import { Field, FieldLabel } from "@auxilio-pedagogico/ui/components/field";
 import { Input } from "@auxilio-pedagogico/ui/components/input";
 import { Label } from "@auxilio-pedagogico/ui/components/label";
+import { Select } from "@auxilio-pedagogico/ui/components/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@auxilio-pedagogico/ui/components/table";
 import { Textarea } from "@auxilio-pedagogico/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
+import { QueryState } from "@/components/query-state";
+import { useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
@@ -78,9 +92,7 @@ function groupBySection(rows: QuestionRow[]): {
 function QuestionsPage() {
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  const canConfigure =
-    role === "director" || role === "it_admin" || role === "pedagogue";
+  const canConfigure = useRole().can("configureQuestions");
 
   const questionsQuery = useQuery({
     ...trpc.question.list.queryOptions(),
@@ -134,11 +146,6 @@ function QuestionsPage() {
       },
       onError: (error) => toast.error(error.message),
     }),
-  );
-
-  const groups = useMemo(
-    () => groupBySection((questionsQuery.data ?? []) as QuestionRow[]),
-    [questionsQuery.data],
   );
 
   function resetForm() {
@@ -216,13 +223,15 @@ function QuestionsPage() {
         </p>
       </div>
 
-      <section className="space-y-4 border border-border p-4">
+      <section className="space-y-4 rounded-lg border border-border p-5">
         <h2 className="font-medium">
           {editingId ? "Editar pergunta" : "Nova pergunta"}
         </h2>
         <form className="grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="question-prompt">Enunciado</Label>
+          <Field className="sm:col-span-2">
+            <FieldLabel htmlFor="question-prompt" required>
+              Enunciado
+            </FieldLabel>
             <Textarea
               id="question-prompt"
               value={prompt}
@@ -230,12 +239,11 @@ function QuestionsPage() {
               required
               minLength={3}
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="question-type">Tipo</Label>
-            <select
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="question-type">Tipo</FieldLabel>
+            <Select
               id="question-type"
-              className="h-8 w-full rounded-none border border-input bg-transparent px-2.5 text-xs"
               value={type}
               onChange={(e) => setType(e.target.value as QuestionType)}
             >
@@ -244,32 +252,30 @@ function QuestionsPage() {
                   {TYPE_LABELS[value]}
                 </option>
               ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="question-section">Seção</Label>
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="question-section">Seção</FieldLabel>
             <Input
               id="question-section"
               value={section}
               onChange={(e) => setSection(e.target.value)}
               placeholder="Ex.: Informações pedagógicas"
             />
-          </div>
+          </Field>
           <div className="flex items-center gap-2 sm:col-span-2">
-            <input
+            <Checkbox
               id="question-required"
-              type="checkbox"
-              className="size-4"
               checked={required}
-              onChange={(e) => setRequired(e.target.checked)}
+              onCheckedChange={(checked) => setRequired(checked === true)}
             />
             <Label htmlFor="question-required">Obrigatória</Label>
           </div>
           {typeNeedsOptions(type) ? (
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="question-options">
+            <Field className="sm:col-span-2">
+              <FieldLabel htmlFor="question-options" required>
                 Opções (uma por linha)
-              </Label>
+              </FieldLabel>
               <Textarea
                 id="question-options"
                 value={optionsText}
@@ -277,7 +283,7 @@ function QuestionsPage() {
                 placeholder={"Manhã\nTarde\nIntegral"}
                 required
               />
-            </div>
+            </Field>
           ) : null}
           <div className="flex gap-2 sm:col-span-2">
             <Button
@@ -297,52 +303,43 @@ function QuestionsPage() {
 
       <section className="space-y-4">
         <h2 className="font-medium">Lista por seção</h2>
-        {questionsQuery.isLoading || questionsQuery.isPending ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
-        ) : questionsQuery.isError ? (
-          <p className="text-sm text-destructive">
-            {questionsQuery.error.message}
-          </p>
-        ) : !questionsQuery.isFetched ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
-        ) : groups.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Nenhuma pergunta cadastrada.
-          </p>
-        ) : (
-          groups.map((group) => (
-            <div key={group.section} className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                {group.section}
-              </h3>
-              <div className="overflow-x-auto border border-border">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-border bg-muted/40">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Ordem</th>
-                      <th className="px-3 py-2 font-medium">Enunciado</th>
-                      <th className="px-3 py-2 font-medium">Tipo</th>
-                      <th className="px-3 py-2 font-medium">Obrig.</th>
-                      <th className="px-3 py-2 font-medium">Situação</th>
-                      <th className="px-3 py-2 font-medium">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+        <QueryState
+          query={questionsQuery}
+          isEmpty={(rows) => rows.length === 0}
+          empty={
+            <p className="text-sm text-muted-foreground">
+              Nenhuma pergunta cadastrada.
+            </p>
+          }
+        >
+          {(rows) =>
+            groupBySection(rows as QuestionRow[]).map((group) => (
+              <div key={group.section} className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  {group.section}
+                </h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ordem</TableHead>
+                      <TableHead>Enunciado</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Obrig.</TableHead>
+                      <TableHead>Situação</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {group.items.map((q, index) => (
-                      <tr
-                        key={q.id}
-                        className="border-b border-border last:border-0"
-                      >
-                        <td className="px-3 py-2">
+                      <TableRow key={q.id}>
+                        <TableCell>
                           <div className="flex items-center gap-1">
                             <span className="tabular-nums">{q.sortOrder}</span>
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              disabled={
-                                index === 0 || reorderMutation.isPending
-                              }
+                              disabled={index === 0 || reorderMutation.isPending}
                               onClick={() =>
                                 moveQuestion(group.items, q.id, "up")
                               }
@@ -366,18 +363,16 @@ function QuestionsPage() {
                               ↓
                             </Button>
                           </div>
-                        </td>
-                        <td className="px-3 py-2">{q.prompt}</td>
-                        <td className="px-3 py-2">
-                          {TYPE_LABELS[q.type] ?? q.type}
-                        </td>
-                        <td className="px-3 py-2">
-                          {q.required ? "Sim" : "Não"}
-                        </td>
-                        <td className="px-3 py-2">
-                          {q.active ? "Ativa" : "Inativa"}
-                        </td>
-                        <td className="px-3 py-2">
+                        </TableCell>
+                        <TableCell>{q.prompt}</TableCell>
+                        <TableCell>{TYPE_LABELS[q.type] ?? q.type}</TableCell>
+                        <TableCell>{q.required ? "Sim" : "Não"}</TableCell>
+                        <TableCell>
+                          <Badge variant={q.active ? "success" : "muted"}>
+                            {q.active ? "Ativa" : "Inativa"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
                           <div className="flex flex-wrap gap-2">
                             <Button
                               variant="outline"
@@ -411,15 +406,15 @@ function QuestionsPage() {
                               {q.active ? "Desativar" : "Reativar"}
                             </Button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
-            </div>
-          ))
-        )}
+            ))
+          }
+        </QueryState>
       </section>
     </div>
   );
