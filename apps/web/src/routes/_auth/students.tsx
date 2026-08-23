@@ -1,6 +1,12 @@
 import { Badge } from "@auxilio-pedagogico/ui/components/badge";
 import { Button, buttonVariants } from "@auxilio-pedagogico/ui/components/button";
-import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from "@auxilio-pedagogico/ui/components/empty";
+import { Callout } from "@auxilio-pedagogico/ui/components/callout";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@auxilio-pedagogico/ui/components/empty";
 import { Field, FieldLabel } from "@auxilio-pedagogico/ui/components/field";
 import { Input } from "@auxilio-pedagogico/ui/components/input";
 import { Select } from "@auxilio-pedagogico/ui/components/select";
@@ -12,13 +18,15 @@ import {
   TableHeader,
   TableRow,
 } from "@auxilio-pedagogico/ui/components/table";
+import { cn } from "@auxilio-pedagogico/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { FileDown, Info, Pencil, Plus, Power, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { QueryState } from "@/components/query-state";
-import { Can, useRole } from "@/lib/access";
+import { useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
@@ -35,19 +43,37 @@ const SHIFT_LABELS: Record<string, string> = {
 const SHIFT_OPTIONS = ["morning", "afternoon", "full_day"] as const;
 
 type Shift = (typeof SHIFT_OPTIONS)[number];
+type StatusFilter = "all" | "active" | "inactive";
+
+type Student = {
+  id: string;
+  name: string;
+  className: string | null;
+  birthDate: string | null;
+  guardian: string | null;
+  shift: string | null;
+  notes: string | null;
+  active: boolean;
+};
 
 function StudentsPage() {
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
-  const { can } = useRole();
+  const { role, can } = useRole();
   const canManage = can("manageStudents");
   const canViewCaseStudies = can("viewCaseStudy");
+  const canGeneratePdf = can("generatePdf");
+  const isTeacher = role === "teacher";
 
   const studentsQuery = useQuery({
     ...trpc.student.list.queryOptions(),
     enabled: Boolean(session?.user?.id),
   });
 
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
   const [className, setClassName] = useState("");
   const [birthDate, setBirthDate] = useState("");
@@ -90,12 +116,35 @@ function StudentsPage() {
 
   function resetForm() {
     setEditingId(null);
+    setFormOpen(false);
     setName("");
     setClassName("");
     setBirthDate("");
     setGuardian("");
     setShift("");
     setNotes("");
+  }
+
+  function startCreate() {
+    setEditingId(null);
+    setName("");
+    setClassName("");
+    setBirthDate("");
+    setGuardian("");
+    setShift("");
+    setNotes("");
+    setFormOpen(true);
+  }
+
+  function startEdit(s: Student) {
+    setEditingId(s.id);
+    setName(s.name);
+    setClassName(s.className ?? "");
+    setBirthDate(s.birthDate ?? "");
+    setGuardian(s.guardian ?? "");
+    setShift((s.shift as Shift | null) ?? "");
+    setNotes(s.notes ?? "");
+    setFormOpen(true);
   }
 
   function onSubmit(e: React.FormEvent) {
@@ -115,20 +164,55 @@ function StudentsPage() {
     }
   }
 
+  function notifyPdfUnavailable() {
+    toast.info("Geração de PDF ainda não disponível.", {
+      description: "Chega em uma próxima atualização.",
+    });
+  }
+
+  const normalizedQuery = query.trim().toLowerCase();
+
+  function filterStudents(students: Student[]): Student[] {
+    return students.filter((s) => {
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" ? s.active : !s.active);
+      if (!matchesStatus) return false;
+      if (!normalizedQuery) return true;
+      return [s.name, s.className, s.guardian]
+        .filter(Boolean)
+        .some((v) => v!.toLowerCase().includes(normalizedQuery));
+    });
+  }
+
   return (
-    <div className="container mx-auto max-w-4xl space-y-8 px-4 py-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Alunos</h1>
-        <p className="text-sm text-muted-foreground">
-          Cadastro e acompanhamento dos alunos. Professoras veem apenas os
-          atribuídos.
-        </p>
+    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6">
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight">Alunos</h1>
+          <p className="text-sm text-muted-foreground">
+            Cadastro e acompanhamento dos estudos de caso.
+          </p>
+        </div>
+        {canManage ? (
+          <Button className="ml-auto" onClick={startCreate}>
+            <Plus />
+            Novo aluno
+          </Button>
+        ) : null}
       </div>
 
-      <Can permission="manageStudents">
-        <section className="space-y-4 rounded-lg border border-border p-5">
+      {isTeacher ? (
+        <Callout>
+          <Info />
+          <span>Mostrando apenas alunos atribuídos a você.</span>
+        </Callout>
+      ) : null}
+
+      {canManage && formOpen ? (
+        <section className="space-y-4 rounded-lg border border-border bg-card p-5">
           <h2 className="font-medium">
-            {editingId ? "Editar aluno" : "Novo aluno"}
+            {editingId ? "Editar cadastro do aluno" : "Novo aluno"}
           </h2>
           <form className="grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>
             <Field>
@@ -198,113 +282,242 @@ function StudentsPage() {
               >
                 {editingId ? "Salvar" : "Cadastrar"}
               </Button>
-              {editingId ? (
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Cancelar
-                </Button>
-              ) : null}
+              <Button type="button" variant="outline" onClick={resetForm}>
+                Cancelar
+              </Button>
             </div>
           </form>
         </section>
-      </Can>
+      ) : null}
 
-      <section className="space-y-3">
-        <h2 className="font-medium">Lista</h2>
-        <QueryState
-          query={studentsQuery}
-          isEmpty={(rows) => rows.length === 0}
-          empty={
-            <Empty className="border border-border">
-              <EmptyHeader>
-                <EmptyTitle>Nenhum aluno listado</EmptyTitle>
-                <EmptyDescription>
-                  {canManage
-                    ? "Cadastre o primeiro aluno usando o formulário acima."
-                    : "Nenhum aluno atribuído a você no momento."}
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          }
-        >
-          {(students) => (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Turma</TableHead>
-                  <TableHead>Turno</TableHead>
-                  <TableHead>Responsável</TableHead>
-                  <TableHead>Situação</TableHead>
-                  {canViewCaseStudies ? <TableHead>Ações</TableHead> : null}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {students.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell>{s.name}</TableCell>
-                    <TableCell>{s.className ?? "—"}</TableCell>
-                    <TableCell>{s.shift ? SHIFT_LABELS[s.shift] : "—"}</TableCell>
-                    <TableCell>{s.guardian ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={s.active ? "success" : "muted"}>
-                        {s.active ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    {canViewCaseStudies ? (
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            to="/students/$studentId"
-                            params={{ studentId: s.id }}
-                            className={buttonVariants({
-                              variant: "outline",
-                              size: "sm",
-                            })}
-                          >
-                            Estudos de caso
-                          </Link>
+      <QueryState
+        query={studentsQuery}
+        isEmpty={(rows) => rows.length === 0}
+        empty={
+          <Empty className="border border-border bg-card">
+            <EmptyHeader>
+              <EmptyTitle>Nenhum aluno listado</EmptyTitle>
+              <EmptyDescription>
+                {canManage
+                  ? 'Cadastre o primeiro aluno com o botão "Novo aluno".'
+                  : "Nenhum aluno atribuído a você no momento. Fale com a direção ou a pedagoga."}
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        }
+      >
+        {(students) => {
+          const rows = filterStudents(students as Student[]);
+          return (
+            <section className="overflow-hidden rounded-lg border border-border bg-card">
+              <div className="flex flex-wrap items-center gap-3 border-b border-border p-3">
+                <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm">
+                  <Search className="size-4 shrink-0 text-muted-foreground" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Buscar por nome, turma ou responsável…"
+                    aria-label="Buscar aluno"
+                    className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+                  />
+                </div>
+                <Select
+                  value={statusFilter}
+                  onChange={(e) =>
+                    setStatusFilter(e.target.value as StatusFilter)
+                  }
+                  aria-label="Filtrar por situação"
+                  className="h-10 w-auto"
+                >
+                  <option value="all">Situação: Todas</option>
+                  <option value="active">Ativos</option>
+                  <option value="inactive">Inativos</option>
+                </Select>
+                <span className="ml-auto text-sm text-muted-foreground tabular-nums">
+                  {rows.length}{" "}
+                  {rows.length === 1 ? "aluno" : "alunos"}
+                </span>
+              </div>
+
+              {rows.length === 0 ? (
+                <p className="p-6 text-center text-sm text-muted-foreground">
+                  Nenhum aluno encontrado para a busca ou filtro.
+                </p>
+              ) : (
+                <>
+                  {/* Desktop: tabela */}
+                  <div className="hidden sm:block">
+                    <Table className="border-0">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Aluno</TableHead>
+                          <TableHead>Turma</TableHead>
+                          <TableHead>Responsável</TableHead>
+                          <TableHead>Situação</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.map((s) => (
+                          <TableRow key={s.id}>
+                            <TableCell className="font-medium">
+                              {s.name}
+                            </TableCell>
+                            <TableCell>
+                              {s.className ?? "—"}
+                              {s.shift ? (
+                                <span className="block text-xs text-muted-foreground">
+                                  {SHIFT_LABELS[s.shift]}
+                                </span>
+                              ) : null}
+                            </TableCell>
+                            <TableCell>{s.guardian ?? "—"}</TableCell>
+                            <TableCell>
+                              <Badge variant={s.active ? "success" : "muted"}>
+                                {s.active ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-end gap-1.5">
+                                {canViewCaseStudies ? (
+                                  <Link
+                                    to="/students/$studentId"
+                                    params={{ studentId: s.id }}
+                                    className={buttonVariants({
+                                      variant: "outline-primary",
+                                      size: "sm",
+                                    })}
+                                  >
+                                    Estudos de caso
+                                  </Link>
+                                ) : null}
+                                {canGeneratePdf ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label="Gerar PDF do estudo de caso"
+                                    title="Gerar PDF do estudo de caso"
+                                    onClick={notifyPdfUnavailable}
+                                  >
+                                    <FileDown />
+                                  </Button>
+                                ) : null}
+                                {canManage ? (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      aria-label="Editar cadastro (turma, turno, responsável)"
+                                      title="Editar cadastro (turma, turno, responsável)"
+                                      onClick={() => startEdit(s)}
+                                    >
+                                      <Pencil />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      aria-label={
+                                        s.active
+                                          ? "Desativar aluno"
+                                          : "Reativar aluno"
+                                      }
+                                      title={
+                                        s.active
+                                          ? "Desativar aluno"
+                                          : "Reativar aluno"
+                                      }
+                                      disabled={setActiveMutation.isPending}
+                                      onClick={() =>
+                                        setActiveMutation.mutate({
+                                          id: s.id,
+                                          active: !s.active,
+                                        })
+                                      }
+                                    >
+                                      <Power
+                                        className={cn(
+                                          s.active
+                                            ? "text-muted-foreground"
+                                            : "text-success",
+                                        )}
+                                      />
+                                    </Button>
+                                  </>
+                                ) : null}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile: cards */}
+                  <ul className="divide-y divide-border sm:hidden">
+                    {rows.map((s) => (
+                      <li key={s.id} className="space-y-3 p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium">{s.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {[s.className, s.shift ? SHIFT_LABELS[s.shift] : null]
+                                .filter(Boolean)
+                                .join(" · ") || "Sem turma"}
+                            </p>
+                          </div>
+                          <Badge variant={s.active ? "success" : "muted"}>
+                            {s.active ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Responsável: {s.guardian ?? "—"}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          {canViewCaseStudies ? (
+                            <Link
+                              to="/students/$studentId"
+                              params={{ studentId: s.id }}
+                              className={cn(
+                                buttonVariants({ variant: "outline-primary" }),
+                                "flex-1",
+                              )}
+                            >
+                              Estudos de caso
+                            </Link>
+                          ) : null}
+                          {canGeneratePdf ? (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              aria-label="Gerar PDF do estudo de caso"
+                              title="Gerar PDF do estudo de caso"
+                              onClick={notifyPdfUnavailable}
+                            >
+                              <FileDown />
+                            </Button>
+                          ) : null}
                           {canManage ? (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingId(s.id);
-                                  setName(s.name);
-                                  setClassName(s.className ?? "");
-                                  setBirthDate(s.birthDate ?? "");
-                                  setGuardian(s.guardian ?? "");
-                                  setShift((s.shift as Shift | null) ?? "");
-                                  setNotes(s.notes ?? "");
-                                }}
-                              >
-                                Editar
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={setActiveMutation.isPending}
-                                onClick={() =>
-                                  setActiveMutation.mutate({
-                                    id: s.id,
-                                    active: !s.active,
-                                  })
-                                }
-                              >
-                                {s.active ? "Desativar" : "Reativar"}
-                              </Button>
-                            </>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              aria-label="Editar cadastro (turma, turno, responsável)"
+                              title="Editar cadastro (turma, turno, responsável)"
+                              onClick={() => startEdit(s)}
+                            >
+                              <Pencil />
+                            </Button>
                           ) : null}
                         </div>
-                      </TableCell>
-                    ) : null}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </QueryState>
-      </section>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </section>
+          );
+        }}
+      </QueryState>
     </div>
   );
 }
