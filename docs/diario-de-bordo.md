@@ -49,3 +49,4 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | Data | Dev | Ref | Horas | Notas |
 | --- | --- | --- | --- | --- |
 | 2026-08-23 | Hugo | #18 | 0,5 | CI publica imagens `web` e `server` no Docker Hub após checks na `main` |
+| 2026-08-23 | Hugo | #18 | 1,0 | Stack Portainer/Swarm (Traefik `extensao.hugogsilva.dev`) + migrate/seed no start da API |

@@ -31,7 +31,9 @@ COPY --from=build /app/apps/server/package.json ./apps/server/
 COPY --from=build /app/packages ./packages
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/server/dist ./apps/server/dist
+COPY deploy/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 WORKDIR /app/apps/server
 EXPOSE 3000
-CMD ["bun", "run", "dist/index.mjs"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
