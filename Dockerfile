@@ -27,13 +27,11 @@ ENV NODE_ENV=production
 ENV PORT=3000
 
 COPY --from=build /app/package.json /app/bun.lock /app/turbo.json ./
-COPY --from=build /app/apps/server/package.json ./apps/server/
-COPY --from=build /app/packages ./packages
 COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/apps/server/dist ./apps/server/dist
+COPY --from=build /app/packages ./packages
+COPY --from=build /app/apps ./apps
 COPY deploy/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-WORKDIR /app/apps/server
 EXPOSE 3000
 ENTRYPOINT ["/docker-entrypoint.sh"]

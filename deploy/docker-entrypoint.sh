@@ -19,5 +19,5 @@ if [ "${ALLOW_SEED:-false}" = "true" ]; then
   bun packages/db/src/seed.ts
 fi
 
-cd /app/apps/server
-exec bun run dist/index.mjs
+# Resolver pacotes a partir da raiz do monorepo (Bun workspace).
+exec bun apps/server/dist/index.mjs
