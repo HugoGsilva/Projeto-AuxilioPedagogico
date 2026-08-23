@@ -53,6 +53,7 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | 2026-08-23 | Hugo | #40 | _a preencher_ | Redesign v2 (0/4): tokens do shell escuro (`--rail*`) e do estado de pendência âmbar (`--pending`); correção de contraste WCAG AA do texto secundário (`--muted-foreground` 4.48→~5.0:1) |
 | 2026-08-23 | Hugo | #42 | _a preencher_ | Redesign v2 (1/4): `AppShell` com rail escuro + topbar + gaveta mobile (`Sheet` sobre base-ui dialog) + barra inferior; nav agrupada/filtrada por papel; home logada = `/dashboard` (remove "Início", `/` redireciona); variante de botão `outline-primary`; header antigo removido |
 | 2026-08-23 | Hugo | #44 | _a preencher_ | Redesign v2 (2/4): tela Alunos no novo padrão — barra de controles (busca/filtro/contador), hierarquia de ações (`outline-primary` + ícones com tooltip), aviso da professora (`Callout`), form como toggle, cards no mobile, stub de PDF; status do estudo em standby (falta agregado no backend) |
+| 2026-08-23 | Hugo | #46 | _a preencher_ | Redesign v2 (3/4): demais telas no padrão — container consistente (sai `container`), conteúdo em cards claros sobre o canvas (`Table` com `bg-card` + opção `bare`, seções e vazios com `bg-card`); corrige borda dupla da tabela em Alunos |
 
 ## M8 — Deploy e operação
 

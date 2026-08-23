@@ -348,7 +348,7 @@ function StudentsPage() {
                 <>
                   {/* Desktop: tabela */}
                   <div className="hidden sm:block">
-                    <Table className="border-0">
+                    <Table bare>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Aluno</TableHead>

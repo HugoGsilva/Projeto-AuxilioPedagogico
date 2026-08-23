@@ -81,7 +81,7 @@ function UsersPage() {
   );
 
   return (
-    <div className="container mx-auto max-w-4xl space-y-8 px-4 py-6">
+    <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Usuários</h1>
         <p className="text-sm text-muted-foreground">
@@ -89,7 +89,7 @@ function UsersPage() {
         </p>
       </div>
 
-      <section className="space-y-4 rounded-lg border border-border p-5">
+      <section className="space-y-4 rounded-lg border border-border bg-card p-5">
         <h2 className="font-medium">Novo usuário</h2>
         <form
           className="grid gap-4 sm:grid-cols-2"

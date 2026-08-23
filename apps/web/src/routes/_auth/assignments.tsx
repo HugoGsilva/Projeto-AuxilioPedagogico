@@ -74,7 +74,7 @@ function AssignmentsPage() {
 
   if (!canManage) {
     return (
-      <div className="container mx-auto max-w-3xl px-4 py-6">
+      <div className="mx-auto w-full max-w-3xl px-4 py-6">
         <h1 className="text-2xl font-semibold tracking-tight">Atribuições</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Apenas direção e pedagogas gerenciam atribuições aluno↔professora.
@@ -84,7 +84,7 @@ function AssignmentsPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl space-y-8 px-4 py-6">
+    <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Atribuições</h1>
         <p className="text-sm text-muted-foreground">
@@ -93,7 +93,7 @@ function AssignmentsPage() {
         </p>
       </div>
 
-      <section className="space-y-4 rounded-lg border border-border p-5">
+      <section className="space-y-4 rounded-lg border border-border bg-card p-5">
         <h2 className="font-medium">Nova atribuição</h2>
         <form
           className="grid gap-4 sm:grid-cols-2"
