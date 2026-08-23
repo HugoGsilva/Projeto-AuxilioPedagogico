@@ -1,12 +1,9 @@
 version: "3.8"
 
-# Stack Swarm / Portainer — Auxílio Pedagógico
-# Domínio: extensao.hugogsilva.dev
-# Rede externa Traefik: network_swarm_public
-#
-# Variáveis no Portainer (stack env):
-#   POSTGRES_PASSWORD, BETTER_AUTH_SECRET (≥32), SEED_PASSWORD (≥8)
-#   ALLOW_SEED=true só na primeira subida de teste; depois false.
+# Ambiente de TESTE — valores fixos de propósito (não usar na escola em produção).
+# Portainer: cole este arquivo e faça o deploy. Sem variáveis extras.
+# Login: diretor@escola.local / Dev@12345
+# (também ti@, pedagoga@, professora@escola.local — mesma senha)
 
 services:
   postgres:
@@ -14,7 +11,7 @@ services:
     environment:
       POSTGRES_DB: auxilio_pedagogico
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
+      POSTGRES_PASSWORD: AuxilioTest2026
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -36,12 +33,12 @@ services:
     environment:
       NODE_ENV: production
       PORT: "3000"
-      DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/auxilio_pedagogico"
-      BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET is required}"
+      DATABASE_URL: postgres://postgres:AuxilioTest2026@postgres:5432/auxilio_pedagogico
+      BETTER_AUTH_SECRET: auxilio-pedagogico-teste-secret-32b
       BETTER_AUTH_URL: https://extensao.hugogsilva.dev
       CORS_ORIGIN: https://extensao.hugogsilva.dev
-      ALLOW_SEED: "${ALLOW_SEED:-true}"
-      SEED_PASSWORD: "${SEED_PASSWORD:-}"
+      ALLOW_SEED: "true"
+      SEED_PASSWORD: Dev@12345
     networks:
       - internal
       - network_swarm_public
