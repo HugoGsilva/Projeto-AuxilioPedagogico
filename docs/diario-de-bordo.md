@@ -43,3 +43,9 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | --- | --- | --- | --- | --- |
 | 2026-08-13 | Hugo | #10 | 1,0 | CRUD de perguntas (tipos, opções, ativar/desativar) + auditoria |
 | 2026-08-13 | Hugo | #11 | 0,5 | UI de ordenação e agrupamento por seção (`sortOrder`) |
+
+## M8 — Deploy e operação
+
+| Data | Dev | Ref | Horas | Notas |
+| --- | --- | --- | --- | --- |
+| 2026-08-23 | Hugo | #18 | 0,5 | CI publica imagens `web` e `server` no Docker Hub após checks na `main` |
