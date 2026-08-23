@@ -42,13 +42,21 @@ jobs:
   docker:
     name: docker-hub
     needs: ci
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    # PRs de fork não recebem secrets; o restante (PR interno, push na main, dispatch) publica.
+    if: github.event.pull_request.head.repo.fork != true
     runs-on: ubuntu-latest
     permissions:
       contents: read
       actions: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Conferir secrets Docker Hub
+        run: |
+          if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ] || [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            echo "Defina DOCKERHUB_USERNAME e DOCKERHUB_TOKEN em Settings → Secrets and variables → Actions (repositório, não Environment)."
+            exit 1
+          fi
 
       - name: Normalizar namespace Docker Hub
         id: hub
@@ -66,7 +74,8 @@ jobs:
         with:
           images: ${{ steps.hub.outputs.owner }}/auxilio-pedagogico-web
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=pr
             type=sha,prefix=sha-
 
       - uses: docker/metadata-action@v5
@@ -74,7 +83,8 @@ jobs:
         with:
           images: ${{ steps.hub.outputs.owner }}/auxilio-pedagogico-server
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=pr
             type=sha,prefix=sha-
 
       - name: Build e push web
