@@ -203,7 +203,7 @@ function QuestionsPage() {
 
   if (!canConfigure) {
     return (
-      <div className="container mx-auto max-w-3xl px-4 py-6">
+      <div className="mx-auto w-full max-w-3xl px-4 py-6">
         <h1 className="text-2xl font-semibold tracking-tight">Perguntas</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Apenas direção, TI e pedagogas configuram as perguntas do estudo de
@@ -214,7 +214,7 @@ function QuestionsPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl space-y-8 px-4 py-6">
+    <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Perguntas</h1>
         <p className="text-sm text-muted-foreground">
@@ -223,7 +223,7 @@ function QuestionsPage() {
         </p>
       </div>
 
-      <section className="space-y-4 rounded-lg border border-border p-5">
+      <section className="space-y-4 rounded-lg border border-border bg-card p-5">
         <h2 className="font-medium">
           {editingId ? "Editar pergunta" : "Nova pergunta"}
         </h2>

@@ -1,11 +1,18 @@
 import { cn } from "@auxilio-pedagogico/ui/lib/utils";
 import * as React from "react";
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+function Table({
+  className,
+  bare = false,
+  ...props
+}: React.ComponentProps<"table"> & { bare?: boolean }) {
   return (
     <div
       data-slot="table-container"
-      className="w-full overflow-x-auto rounded-lg border border-border"
+      className={cn(
+        "w-full overflow-x-auto",
+        !bare && "rounded-lg border border-border bg-card",
+      )}
     >
       <table
         data-slot="table"

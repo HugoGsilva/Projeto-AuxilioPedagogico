@@ -68,7 +68,7 @@ function StudentCaseStudiesPage() {
   const errorMessage = studentQuery.error?.message;
 
   return (
-    <div className="container mx-auto max-w-5xl space-y-8 px-4 py-6">
+    <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-6">
       <div className="space-y-2">
         <Link
           to="/students"
@@ -112,7 +112,7 @@ function StudentCaseStudiesPage() {
           query={caseStudiesQuery}
           isEmpty={(rows) => rows.length === 0}
           empty={
-            <Empty className="border border-border">
+            <Empty className="border border-border bg-card">
               <EmptyHeader>
                 <EmptyTitle>Nenhum estudo de caso</EmptyTitle>
                 <EmptyDescription>
