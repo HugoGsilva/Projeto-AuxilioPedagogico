@@ -49,6 +49,9 @@
   --input: oklch(0.922 0 0);
   --ring: oklch(0.52 0.15 255);
   /* Rail escuro (mesmo tom em tema claro e escuro) + estado de pendência (âmbar). */
+  /* Canvas da área de conteúdo: opaco de propósito. Um tom translúcido aqui
+   * compõe sobre o rail escuro e suja o fundo no tema claro. */
+  --canvas: oklch(0.968 0.004 262);
   --rail: oklch(0.21 0.035 262);
   --rail-2: oklch(0.28 0.035 262);
   --rail-line: oklch(0.3 0.03 262);
@@ -90,6 +93,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.7 0.15 145);
   --success-foreground: oklch(0.205 0 0);
+  --canvas: oklch(0.178 0.012 262);
   /* Rail (--rail*) herda do :root — a faixa permanece escura no tema escuro. */
   --pending: oklch(0.78 0.12 70); /* âmbar mais claro p/ superfície escura */
   --pending-foreground: oklch(0.205 0 0);
@@ -134,6 +138,7 @@
   --color-success-foreground: var(--success-foreground);
   --color-pending: var(--pending);
   --color-pending-foreground: var(--pending-foreground);
+  --color-canvas: var(--canvas);
   --color-rail: var(--rail);
   --color-rail-2: var(--rail-2);
   --color-rail-line: var(--rail-line);

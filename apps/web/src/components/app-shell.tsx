@@ -173,7 +173,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SidebarNav groups={groups} />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col bg-muted/40">
+      <div className="flex min-w-0 flex-1 flex-col bg-canvas">
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger
