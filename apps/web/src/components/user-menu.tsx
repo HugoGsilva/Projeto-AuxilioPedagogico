@@ -31,16 +31,22 @@ export default function UserMenu() {
     );
   }
 
+  // `session.user` pode não estar populado num render transitório do useSession;
+  // ler `.name` direto quebrava a tela inteira (tela branca em produção).
+  const displayName = session.user?.name ?? session.user?.email ?? "Minha conta";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="outline" />}>
-        {session.user.name}
+        {displayName}
       </DropdownMenuTrigger>
       <DropdownMenuContent className="bg-card">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>{session.user.email}</DropdownMenuItem>
+          {session.user?.email ? (
+            <DropdownMenuItem>{session.user.email}</DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem
             variant="destructive"
             onClick={() => {
