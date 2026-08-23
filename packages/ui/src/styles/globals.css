@@ -20,6 +20,10 @@
  * - Arredondamento: --radius. Os primitivos herdam via rounded-md/rounded-lg —
  *   mudar aqui reflete em tudo.
  * - Densidade/fonte: --font-sans e os tamanhos dos primitivos em packages/ui.
+ * - Shell escuro (redesign v2): --rail* definem a faixa de navegação escura,
+ *   mesma em tema claro e escuro (identidade). --pending é o âmbar de "estudo
+ *   incompleto" (distinto de success/destructive). Contraste de texto secundário
+ *   mantido em WCAG AA (≥ 4.5:1) no fundo real.
  * Regra: nenhuma tela nomeia cor/hex/px — só tokens semânticos.
  */
 
@@ -35,7 +39,7 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: oklch(0.54 0 0); /* AA: ~5.0:1 no branco, ~4.7:1 em canvas cinza (era 0.556 ≈ 4.48:1) */
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.58 0.22 27);
@@ -44,6 +48,14 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.52 0.15 255);
+  /* Rail escuro (mesmo tom em tema claro e escuro) + estado de pendência (âmbar). */
+  --rail: oklch(0.21 0.035 262);
+  --rail-2: oklch(0.28 0.035 262);
+  --rail-line: oklch(0.3 0.03 262);
+  --rail-text: oklch(0.86 0.02 262); /* AA em --rail: ~12:1 */
+  --rail-faint: oklch(0.63 0.03 262); /* AA em --rail: ~5.0:1 (era #64748b ≈ 3.75:1) */
+  --pending: oklch(0.52 0.14 55); /* âmbar; AA em branco/tint: ~4.9:1 */
+  --pending-foreground: oklch(0.985 0 0);
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
@@ -78,6 +90,9 @@
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.7 0.15 145);
   --success-foreground: oklch(0.205 0 0);
+  /* Rail (--rail*) herda do :root — a faixa permanece escura no tema escuro. */
+  --pending: oklch(0.78 0.12 70); /* âmbar mais claro p/ superfície escura */
+  --pending-foreground: oklch(0.205 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.62 0.15 255);
@@ -117,6 +132,13 @@
   --color-destructive: var(--destructive);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-pending: var(--pending);
+  --color-pending-foreground: var(--pending-foreground);
+  --color-rail: var(--rail);
+  --color-rail-2: var(--rail-2);
+  --color-rail-line: var(--rail-line);
+  --color-rail-text: var(--rail-text);
+  --color-rail-faint: var(--rail-faint);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
