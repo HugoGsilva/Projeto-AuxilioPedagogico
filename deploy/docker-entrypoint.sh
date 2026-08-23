@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+cd /app
+
+echo "[api] aguardando Postgres e aplicando migrations…"
+i=0
+until bun packages/db/src/migrate.ts; do
+  i=$((i + 1))
+  if [ "$i" -ge 30 ]; then
+    echo "[api] Postgres indisponível após várias tentativas."
+    exit 1
+  fi
+  sleep 2
+done
+
+if [ "${ALLOW_SEED:-false}" = "true" ]; then
+  echo "[api] ALLOW_SEED=true — seed idempotente"
+  bun packages/db/src/seed.ts
+fi
+
+cd /app/apps/server
+exec bun run dist/index.mjs

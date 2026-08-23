@@ -1,10 +1,10 @@
 /**
- * Development seed — one user per role, sample students/questions/assignment.
+ * Seed de usuários/alunos/perguntas.
  *
- * Usage: `bun run db:seed` (requires Postgres up + schema applied).
- * Password for all seed users: `Dev@12345`
+ * Uso local: `bun run db:seed` (Postgres no ar + schema aplicado).
+ * Na VPS: ALLOW_SEED=true e SEED_PASSWORD no stack (idempotente).
  *
- * Idempotent: skips when `diretor@escola.local` already exists.
+ * Local sem SEED_PASSWORD: senha padrão `Dev@12345`.
  */
 import { hashPassword } from "better-auth/crypto";
 import dotenv from "dotenv";
@@ -22,7 +22,16 @@ const {
   pdfSettings,
 } = await import("./schema");
 
-const SEED_PASSWORD = "Dev@12345";
+function resolveSeedPassword(): string {
+  const fromEnv = process.env.SEED_PASSWORD?.trim();
+  if (fromEnv && fromEnv.length >= 8) return fromEnv;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "SEED_PASSWORD é obrigatório em produção (mínimo 8 caracteres).",
+    );
+  }
+  return "Dev@12345";
+}
 
 const USERS = [
   {
@@ -52,11 +61,14 @@ const USERS = [
 ] as const;
 
 async function seed() {
-  if (process.env.NODE_ENV === "production") {
+  const allowSeed = process.env.ALLOW_SEED === "true";
+  if (process.env.NODE_ENV === "production" && !allowSeed) {
     throw new Error(
-      "db:seed recusado: não execute seed de desenvolvimento em produção.",
+      "db:seed recusado em produção. Defina ALLOW_SEED=true para o bootstrap da VPS.",
     );
   }
+
+  const seedPassword = resolveSeedPassword();
 
   const seedIds = USERS.map((u) => u.id);
   const existingSeedUsers = await db
@@ -76,7 +88,7 @@ async function seed() {
     );
   }
 
-  const passwordHash = await hashPassword(SEED_PASSWORD);
+  const passwordHash = await hashPassword(seedPassword);
 
   await db.transaction(async (tx) => {
     for (const u of USERS) {
@@ -169,7 +181,7 @@ async function seed() {
   });
 
   console.log("Seed aplicado com sucesso.");
-  console.log("Usuários (senha: Dev@12345):");
+  console.log(`Usuários (senha: ${allowSeed ? "SEED_PASSWORD" : "Dev@12345"}):`);
   for (const u of USERS) {
     console.log(`  - ${u.role}: ${u.email}`);
   }

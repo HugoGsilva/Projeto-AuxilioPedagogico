@@ -1,0 +1,102 @@
+version: "3.8"
+
+# Ambiente de TESTE — valores fixos de propósito (não usar na escola em produção).
+# Portainer: cole este arquivo e faça o deploy. Sem variáveis extras.
+# Login: diretor@escola.local / Dev@12345
+# (também ti@, pedagoga@, professora@escola.local — mesma senha)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: auxilio_pedagogico
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: AuxilioTest2026
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auxilio_pedagogico"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+
+  api:
+    image: hugogsilva/auxilio-pedagogico-server:latest
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: postgres://postgres:AuxilioTest2026@postgres:5432/auxilio_pedagogico
+      BETTER_AUTH_SECRET: auxilio-pedagogico-teste-secret-32b
+      BETTER_AUTH_URL: https://extensao.hugogsilva.dev
+      CORS_ORIGIN: https://extensao.hugogsilva.dev
+      ALLOW_SEED: "true"
+      SEED_PASSWORD: Dev@12345
+    networks:
+      - internal
+      - network_swarm_public
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.auxilio-api.rule=Host(`extensao.hugogsilva.dev`) && (PathPrefix(`/trpc`) || PathPrefix(`/api/auth`))
+        - traefik.http.routers.auxilio-api.entrypoints=websecure
+        - traefik.http.routers.auxilio-api.priority=10
+        - traefik.http.routers.auxilio-api.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.auxilio-api.service=auxilio-api
+        - traefik.http.services.auxilio-api.loadbalancer.server.port=3000
+
+  web:
+    image: hugogsilva/auxilio-pedagogico-web:latest
+    networks:
+      - network_swarm_public
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.auxilio-web.rule=Host(`extensao.hugogsilva.dev`)
+        - traefik.http.routers.auxilio-web.entrypoints=websecure
+        - traefik.http.routers.auxilio-web.priority=1
+        - traefik.http.routers.auxilio-web.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.auxilio-web.service=auxilio-web
+        - traefik.http.services.auxilio-web.loadbalancer.server.port=80
+
+networks:
+  internal:
+    driver: overlay
+  network_swarm_public:
+    external: true
+
+volumes:
+  postgres_data:
