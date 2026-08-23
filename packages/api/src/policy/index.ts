@@ -4,6 +4,7 @@ export {
   canViewAuditEntry,
   assertCan,
   assertCanAccessStudent,
+  assertCanViewOrEditCaseStudy,
   type Actor,
   type AuditViewDecision,
 } from "./access";

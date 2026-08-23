@@ -44,6 +44,13 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | 2026-08-13 | Hugo | #10 | 1,0 | CRUD de perguntas (tipos, opções, ativar/desativar) + auditoria |
 | 2026-08-13 | Hugo | #11 | 0,5 | UI de ordenação e agrupamento por seção (`sortOrder`) |
 
+## M5 — Estudo de caso
+
+| Data | Dev | Ref | Horas | Notas |
+| --- | --- | --- | --- | --- |
+| 2026-08-22 | Hugo | #12 | 2,0 | Formulário do estudo de caso com snapshot da pergunta (ADR-0003) |
+| 2026-08-23 | Hugo | #38 | _a preencher_ | Fundação de UI: tokens de status, primitivos Select/Table/Badge/Field, QueryState, camada de acesso `useRole`/`Can` (espelha policy), header com nav ativo/responsivo/gate por papel, dashboard e home reais; telas migradas para os primitivos. Identidade visual suave e acessível: acento azul (`--primary`/`--ring`), cantos arredondados, texto/alvos maiores, foco visível forte — tudo via tokens/primitivos |
+
 ## M8 — Deploy e operação
 
 | Data | Dev | Ref | Horas | Notas |

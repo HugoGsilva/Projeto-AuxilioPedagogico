@@ -7,45 +7,38 @@ export const Route = createFileRoute("/")({
   component: HomeComponent,
 });
 
-const TITLE_TEXT = `
- ██████╗ ███████╗████████╗████████╗███████╗██████╗
- ██╔══██╗██╔════╝╚══██╔══╝╚══██╔══╝██╔════╝██╔══██╗
- ██████╔╝█████╗     ██║      ██║   █████╗  ██████╔╝
- ██╔══██╗██╔══╝     ██║      ██║   ██╔══╝  ██╔══██╗
- ██████╔╝███████╗   ██║      ██║   ███████╗██║  ██║
- ╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚══════╝╚═╝  ╚═╝
-
- ████████╗    ███████╗████████╗ █████╗  ██████╗██╗  ██╗
- ╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝
-    ██║       ███████╗   ██║   ███████║██║     █████╔╝
-    ██║       ╚════██║   ██║   ██╔══██║██║     ██╔═██╗
-    ██║       ███████║   ██║   ██║  ██║╚██████╗██║  ██╗
-    ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
- `;
-
 function HomeComponent() {
   const healthCheck = useQuery(trpc.healthCheck.queryOptions());
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-2">
-      <pre className="overflow-x-auto font-mono text-sm">{TITLE_TEXT}</pre>
-      <div className="grid gap-6">
-        <section className="rounded-lg border p-4">
-          <h2 className="mb-2 font-medium">API Status</h2>
-          <div className="flex items-center gap-2">
-            <div
-              className={`h-2 w-2 rounded-full ${healthCheck.data ? "bg-green-500" : "bg-red-500"}`}
-            />
-            <span className="text-sm text-muted-foreground">
-              {healthCheck.isLoading
-                ? "Checking..."
-                : healthCheck.data
-                  ? "Connected"
-                  : "Disconnected"}
-            </span>
-          </div>
-        </section>
+    <div className="container mx-auto max-w-3xl space-y-6 px-4 py-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Auxílio Pedagógico
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Acompanhamento de alunos com necessidades especiais.
+        </p>
       </div>
+
+      <section className="space-y-2 rounded-lg border border-border p-5">
+        <h2 className="font-medium">Status do sistema</h2>
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className={`size-2 rounded-full ${
+              healthCheck.data ? "bg-success" : "bg-destructive"
+            }`}
+          />
+          <span className="text-sm text-muted-foreground">
+            {healthCheck.isLoading
+              ? "Verificando…"
+              : healthCheck.data
+                ? "Conectado à API"
+                : "API indisponível"}
+          </span>
+        </div>
+      </section>
     </div>
   );
 }

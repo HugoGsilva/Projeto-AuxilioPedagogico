@@ -1,10 +1,21 @@
 import { Button } from "@auxilio-pedagogico/ui/components/button";
-import { Label } from "@auxilio-pedagogico/ui/components/label";
+import { Field, FieldLabel } from "@auxilio-pedagogico/ui/components/field";
+import { Select } from "@auxilio-pedagogico/ui/components/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@auxilio-pedagogico/ui/components/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { QueryState } from "@/components/query-state";
+import { useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
@@ -15,8 +26,7 @@ export const Route = createFileRoute("/_auth/assignments")({
 function AssignmentsPage() {
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  const canManage = role === "director" || role === "pedagogue";
+  const canManage = useRole().can("manageAssignments");
 
   const assignmentsQuery = useQuery({
     ...trpc.studentAssignment.list.queryOptions(),
@@ -83,7 +93,7 @@ function AssignmentsPage() {
         </p>
       </div>
 
-      <section className="space-y-4 border border-border p-4">
+      <section className="space-y-4 rounded-lg border border-border p-5">
         <h2 className="font-medium">Nova atribuição</h2>
         <form
           className="grid gap-4 sm:grid-cols-2"
@@ -93,11 +103,12 @@ function AssignmentsPage() {
             createMutation.mutate({ studentId, teacherId });
           }}
         >
-          <div className="space-y-2">
-            <Label htmlFor="assign-student">Aluno</Label>
-            <select
+          <Field>
+            <FieldLabel htmlFor="assign-student" required>
+              Aluno
+            </FieldLabel>
+            <Select
               id="assign-student"
-              className="h-8 w-full rounded-none border border-input bg-transparent px-2.5 text-xs"
               value={studentId}
               onChange={(e) => setStudentId(e.target.value)}
               required
@@ -111,13 +122,14 @@ function AssignmentsPage() {
                     {s.className ? ` (${s.className})` : ""}
                   </option>
                 ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="assign-teacher">Professora</Label>
-            <select
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="assign-teacher" required>
+              Professora
+            </FieldLabel>
+            <Select
               id="assign-teacher"
-              className="h-8 w-full rounded-none border border-input bg-transparent px-2.5 text-xs"
               value={teacherId}
               onChange={(e) => setTeacherId(e.target.value)}
               required
@@ -128,8 +140,8 @@ function AssignmentsPage() {
                   {t.name} — {t.email}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
           <div className="sm:col-span-2">
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Salvando…" : "Atribuir"}
@@ -140,41 +152,36 @@ function AssignmentsPage() {
 
       <section className="space-y-3">
         <h2 className="font-medium">Lista</h2>
-        {assignmentsQuery.isLoading || assignmentsQuery.isPending ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
-        ) : assignmentsQuery.isError ? (
-          <p className="text-sm text-destructive">
-            {assignmentsQuery.error.message}
-          </p>
-        ) : assignmentsQuery.data?.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Nenhuma atribuição cadastrada.
-          </p>
-        ) : (
-          <div className="overflow-x-auto border border-border">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-border bg-muted/40">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Aluno</th>
-                  <th className="px-3 py-2 font-medium">Professora</th>
-                  <th className="px-3 py-2 font-medium">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {assignmentsQuery.data?.map((a) => (
-                  <tr
-                    key={a.id}
-                    className="border-b border-border last:border-0"
-                  >
-                    <td className="px-3 py-2">{a.studentName}</td>
-                    <td className="px-3 py-2">
+        <QueryState
+          query={assignmentsQuery}
+          isEmpty={(rows) => rows.length === 0}
+          empty={
+            <p className="text-sm text-muted-foreground">
+              Nenhuma atribuição cadastrada.
+            </p>
+          }
+        >
+          {(assignments) => (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Aluno</TableHead>
+                  <TableHead>Professora</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {assignments.map((a) => (
+                  <TableRow key={a.id}>
+                    <TableCell>{a.studentName}</TableCell>
+                    <TableCell>
                       {a.teacherName}
                       <span className="text-muted-foreground">
                         {" "}
                         ({a.teacherEmail})
                       </span>
-                    </td>
-                    <td className="px-3 py-2">
+                    </TableCell>
+                    <TableCell>
                       <Button
                         variant="outline"
                         size="sm"
@@ -183,13 +190,13 @@ function AssignmentsPage() {
                       >
                         Remover
                       </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </TableBody>
+            </Table>
+          )}
+        </QueryState>
       </section>
     </div>
   );

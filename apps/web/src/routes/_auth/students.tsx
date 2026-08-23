@@ -1,11 +1,24 @@
-import { Button } from "@auxilio-pedagogico/ui/components/button";
+import { Badge } from "@auxilio-pedagogico/ui/components/badge";
+import { Button, buttonVariants } from "@auxilio-pedagogico/ui/components/button";
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from "@auxilio-pedagogico/ui/components/empty";
+import { Field, FieldLabel } from "@auxilio-pedagogico/ui/components/field";
 import { Input } from "@auxilio-pedagogico/ui/components/input";
-import { Label } from "@auxilio-pedagogico/ui/components/label";
+import { Select } from "@auxilio-pedagogico/ui/components/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@auxilio-pedagogico/ui/components/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { QueryState } from "@/components/query-state";
+import { Can, useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
@@ -26,8 +39,9 @@ type Shift = (typeof SHIFT_OPTIONS)[number];
 function StudentsPage() {
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  const canManage = role === "director" || role === "pedagogue";
+  const { can } = useRole();
+  const canManage = can("manageStudents");
+  const canViewCaseStudies = can("viewCaseStudy");
 
   const studentsQuery = useQuery({
     ...trpc.student.list.queryOptions(),
@@ -111,52 +125,53 @@ function StudentsPage() {
         </p>
       </div>
 
-      {canManage ? (
-        <section className="space-y-4 border border-border p-4">
+      <Can permission="manageStudents">
+        <section className="space-y-4 rounded-lg border border-border p-5">
           <h2 className="font-medium">
             {editingId ? "Editar aluno" : "Novo aluno"}
           </h2>
           <form className="grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="student-name">Nome</Label>
+            <Field>
+              <FieldLabel htmlFor="student-name" required>
+                Nome
+              </FieldLabel>
               <Input
                 id="student-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="student-class">Turma</Label>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="student-class">Turma</FieldLabel>
               <Input
                 id="student-class"
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
                 placeholder="Ex.: 3º Ano A"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="student-birth">Data de nascimento</Label>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="student-birth">Data de nascimento</FieldLabel>
               <Input
                 id="student-birth"
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="student-guardian">Responsável</Label>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="student-guardian">Responsável</FieldLabel>
               <Input
                 id="student-guardian"
                 value={guardian}
                 onChange={(e) => setGuardian(e.target.value)}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="student-shift">Turno</Label>
-              <select
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="student-shift">Turno</FieldLabel>
+              <Select
                 id="student-shift"
-                className="h-8 w-full rounded-none border border-input bg-transparent px-2.5 text-xs"
                 value={shift}
                 onChange={(e) => setShift(e.target.value as Shift | "")}
               >
@@ -166,16 +181,16 @@ function StudentsPage() {
                     {SHIFT_LABELS[value]}
                   </option>
                 ))}
-              </select>
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="student-notes">Observações</Label>
+              </Select>
+            </Field>
+            <Field className="sm:col-span-2">
+              <FieldLabel htmlFor="student-notes">Observações</FieldLabel>
               <Input
                 id="student-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
-            </div>
+            </Field>
             <div className="flex gap-2 sm:col-span-2">
               <Button
                 type="submit"
@@ -191,90 +206,104 @@ function StudentsPage() {
             </div>
           </form>
         </section>
-      ) : null}
+      </Can>
 
       <section className="space-y-3">
         <h2 className="font-medium">Lista</h2>
-        {studentsQuery.isLoading || studentsQuery.isPending ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
-        ) : studentsQuery.isError ? (
-          <p className="text-sm text-destructive">
-            {studentsQuery.error.message}
-          </p>
-        ) : !studentsQuery.isFetched ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
-        ) : studentsQuery.data?.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum aluno listado.</p>
-        ) : (
-          <div className="overflow-x-auto border border-border">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-border bg-muted/40">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Nome</th>
-                  <th className="px-3 py-2 font-medium">Turma</th>
-                  <th className="px-3 py-2 font-medium">Turno</th>
-                  <th className="px-3 py-2 font-medium">Responsável</th>
-                  <th className="px-3 py-2 font-medium">Situação</th>
-                  {canManage ? (
-                    <th className="px-3 py-2 font-medium">Ações</th>
-                  ) : null}
-                </tr>
-              </thead>
-              <tbody>
-                {studentsQuery.data?.map((s) => (
-                  <tr
-                    key={s.id}
-                    className="border-b border-border last:border-0"
-                  >
-                    <td className="px-3 py-2">{s.name}</td>
-                    <td className="px-3 py-2">{s.className ?? "—"}</td>
-                    <td className="px-3 py-2">
-                      {s.shift ? SHIFT_LABELS[s.shift] : "—"}
-                    </td>
-                    <td className="px-3 py-2">{s.guardian ?? "—"}</td>
-                    <td className="px-3 py-2">
-                      {s.active ? "Ativo" : "Inativo"}
-                    </td>
-                    {canManage ? (
-                      <td className="px-3 py-2">
+        <QueryState
+          query={studentsQuery}
+          isEmpty={(rows) => rows.length === 0}
+          empty={
+            <Empty className="border border-border">
+              <EmptyHeader>
+                <EmptyTitle>Nenhum aluno listado</EmptyTitle>
+                <EmptyDescription>
+                  {canManage
+                    ? "Cadastre o primeiro aluno usando o formulário acima."
+                    : "Nenhum aluno atribuído a você no momento."}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          }
+        >
+          {(students) => (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Turma</TableHead>
+                  <TableHead>Turno</TableHead>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead>Situação</TableHead>
+                  {canViewCaseStudies ? <TableHead>Ações</TableHead> : null}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {students.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell>{s.name}</TableCell>
+                    <TableCell>{s.className ?? "—"}</TableCell>
+                    <TableCell>{s.shift ? SHIFT_LABELS[s.shift] : "—"}</TableCell>
+                    <TableCell>{s.guardian ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={s.active ? "success" : "muted"}>
+                        {s.active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                    {canViewCaseStudies ? (
+                      <TableCell>
                         <div className="flex flex-wrap gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setEditingId(s.id);
-                              setName(s.name);
-                              setClassName(s.className ?? "");
-                              setBirthDate(s.birthDate ?? "");
-                              setGuardian(s.guardian ?? "");
-                              setShift((s.shift as Shift | null) ?? "");
-                              setNotes(s.notes ?? "");
-                            }}
+                          <Link
+                            to="/students/$studentId"
+                            params={{ studentId: s.id }}
+                            className={buttonVariants({
+                              variant: "outline",
+                              size: "sm",
+                            })}
                           >
-                            Editar
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={setActiveMutation.isPending}
-                            onClick={() =>
-                              setActiveMutation.mutate({
-                                id: s.id,
-                                active: !s.active,
-                              })
-                            }
-                          >
-                            {s.active ? "Desativar" : "Reativar"}
-                          </Button>
+                            Estudos de caso
+                          </Link>
+                          {canManage ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingId(s.id);
+                                  setName(s.name);
+                                  setClassName(s.className ?? "");
+                                  setBirthDate(s.birthDate ?? "");
+                                  setGuardian(s.guardian ?? "");
+                                  setShift((s.shift as Shift | null) ?? "");
+                                  setNotes(s.notes ?? "");
+                                }}
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={setActiveMutation.isPending}
+                                onClick={() =>
+                                  setActiveMutation.mutate({
+                                    id: s.id,
+                                    active: !s.active,
+                                  })
+                                }
+                              >
+                                {s.active ? "Desativar" : "Reativar"}
+                              </Button>
+                            </>
+                          ) : null}
                         </div>
-                      </td>
+                      </TableCell>
                     ) : null}
-                  </tr>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </TableBody>
+            </Table>
+          )}
+        </QueryState>
       </section>
     </div>
   );
