@@ -52,6 +52,7 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | 2026-08-23 | Hugo | #38 | _a preencher_ | Fundação de UI: tokens de status, primitivos Select/Table/Badge/Field, QueryState, camada de acesso `useRole`/`Can` (espelha policy), header com nav ativo/responsivo/gate por papel, dashboard e home reais; telas migradas para os primitivos. Identidade visual suave e acessível: acento azul (`--primary`/`--ring`), cantos arredondados, texto/alvos maiores, foco visível forte — tudo via tokens/primitivos |
 | 2026-08-23 | Hugo | #40 | _a preencher_ | Redesign v2 (0/4): tokens do shell escuro (`--rail*`) e do estado de pendência âmbar (`--pending`); correção de contraste WCAG AA do texto secundário (`--muted-foreground` 4.48→~5.0:1) |
 | 2026-08-23 | Hugo | #42 | _a preencher_ | Redesign v2 (1/4): `AppShell` com rail escuro + topbar + gaveta mobile (`Sheet` sobre base-ui dialog) + barra inferior; nav agrupada/filtrada por papel; home logada = `/dashboard` (remove "Início", `/` redireciona); variante de botão `outline-primary`; header antigo removido |
+| 2026-08-23 | Hugo | #44 | _a preencher_ | Redesign v2 (2/4): tela Alunos no novo padrão — barra de controles (busca/filtro/contador), hierarquia de ações (`outline-primary` + ícones com tooltip), aviso da professora (`Callout`), form como toggle, cards no mobile, stub de PDF; status do estudo em standby (falta agregado no backend) |
 
 ## M8 — Deploy e operação
 
