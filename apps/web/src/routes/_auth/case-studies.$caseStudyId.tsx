@@ -15,6 +15,13 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  Page,
+  PageBackIcon,
+  pageBackClass,
+  PageHeader,
+  Section,
+} from "@/components/page";
 import { useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
@@ -156,7 +163,9 @@ function CaseStudyFormPage() {
       caseStudyId,
       answers: fields.map((field) => ({
         questionId: field.questionId,
-        value: values[field.questionId]?.trim() ? values[field.questionId] : null,
+        value: values[field.questionId]?.trim()
+          ? values[field.questionId]
+          : null,
       })),
     });
   }
@@ -168,37 +177,36 @@ function CaseStudyFormPage() {
   const emptyForm = !isLoading && !errorMessage && fields.length === 0;
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-6">
-      <div className="space-y-2">
-        {studentId ? (
-          <Link
-            to="/students/$studentId"
-            params={{ studentId }}
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Voltar para estudos de caso
-          </Link>
-        ) : (
-          <Link
-            to="/students"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Voltar para alunos
-          </Link>
-        )}
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Estudo de caso
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {caseStudyQuery.data
+    <Page>
+      <PageHeader
+        back={
+          studentId ? (
+            <Link
+              to="/students/$studentId"
+              params={{ studentId }}
+              className={pageBackClass}
+            >
+              <PageBackIcon />
+              Voltar para estudos de caso
+            </Link>
+          ) : (
+            <Link to="/students" className={pageBackClass}>
+              <PageBackIcon />
+              Voltar para alunos
+            </Link>
+          )
+        }
+        title="Estudo de caso"
+        description={
+          caseStudyQuery.data
             ? `${caseStudyQuery.data.studentName}${
                 caseStudyQuery.data.className
                   ? ` · ${caseStudyQuery.data.className}`
                   : ""
               }`
-            : "Preencha as respostas com o enunciado vigente no momento do salvamento."}
-        </p>
-      </div>
+            : "Preencha as respostas com o enunciado vigente no momento do salvamento."
+        }
+      />
 
       {isLoading ? (
         <div className="space-y-3">
@@ -225,10 +233,9 @@ function CaseStudyFormPage() {
       ) : null}
 
       {!isLoading && !errorMessage && fields.length > 0 ? (
-        <form className="space-y-8" onSubmit={onSubmit}>
+        <form className="space-y-6" onSubmit={onSubmit}>
           {groups.map((group) => (
-            <section key={group.section} className="space-y-4">
-              <h2 className="font-medium">{group.section}</h2>
+            <Section key={group.section} title={group.section}>
               {group.items.map((field) => {
                 const fieldId = `answer-${field.questionId}`;
                 const value = values[field.questionId] ?? "";
@@ -316,15 +323,25 @@ function CaseStudyFormPage() {
                   </Field>
                 );
               })}
-            </section>
+            </Section>
           ))}
           {canEdit ? (
-            <Button type="submit" disabled={saveMutation.isPending}>
-              Salvar respostas
-            </Button>
+            /* Barra fixa: o formulário costuma passar da dobra e a ação
+             * principal não pode depender de rolar até o fim. */
+            <div className="sticky bottom-4 rounded-lg border border-border bg-card/95 p-4 shadow-lg backdrop-blur">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <Button type="submit" disabled={saveMutation.isPending}>
+                  {saveMutation.isPending ? "Salvando…" : "Salvar respostas"}
+                </Button>
+                <p className="text-sm text-muted-foreground text-pretty">
+                  As respostas guardam o enunciado vigente no momento do
+                  salvamento.
+                </p>
+              </div>
+            </div>
           ) : null}
         </form>
       ) : null}
-    </div>
+    </Page>
   );
 }

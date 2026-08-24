@@ -1,5 +1,8 @@
 import { Badge } from "@auxilio-pedagogico/ui/components/badge";
-import { Button, buttonVariants } from "@auxilio-pedagogico/ui/components/button";
+import {
+  Button,
+  buttonVariants,
+} from "@auxilio-pedagogico/ui/components/button";
 import { Callout } from "@auxilio-pedagogico/ui/components/callout";
 import {
   Empty,
@@ -25,6 +28,7 @@ import { FileDown, Info, Pencil, Plus, Power, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Page, PageHeader, Section } from "@/components/page";
 import { QueryState } from "@/components/query-state";
 import { useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
@@ -186,21 +190,19 @@ function StudentsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6">
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">Alunos</h1>
-          <p className="text-sm text-muted-foreground">
-            Cadastro e acompanhamento dos estudos de caso.
-          </p>
-        </div>
-        {canManage ? (
-          <Button className="ml-auto" onClick={startCreate}>
-            <Plus />
-            Novo aluno
-          </Button>
-        ) : null}
-      </div>
+    <Page>
+      <PageHeader
+        title="Alunos"
+        description="Cadastro e acompanhamento dos estudos de caso."
+        actions={
+          canManage && !formOpen ? (
+            <Button onClick={startCreate}>
+              <Plus />
+              Novo aluno
+            </Button>
+          ) : null
+        }
+      />
 
       {isTeacher ? (
         <Callout>
@@ -210,10 +212,7 @@ function StudentsPage() {
       ) : null}
 
       {canManage && formOpen ? (
-        <section className="space-y-4 rounded-lg border border-border bg-card p-5">
-          <h2 className="font-medium">
-            {editingId ? "Editar cadastro do aluno" : "Novo aluno"}
-          </h2>
+        <Section title={editingId ? "Editar cadastro do aluno" : "Novo aluno"}>
           <form className="grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>
             <Field>
               <FieldLabel htmlFor="student-name" required>
@@ -236,7 +235,9 @@ function StudentsPage() {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="student-birth">Data de nascimento</FieldLabel>
+              <FieldLabel htmlFor="student-birth">
+                Data de nascimento
+              </FieldLabel>
               <Input
                 id="student-birth"
                 type="date"
@@ -287,7 +288,7 @@ function StudentsPage() {
               </Button>
             </div>
           </form>
-        </section>
+        </Section>
       ) : null}
 
       <QueryState
@@ -335,8 +336,7 @@ function StudentsPage() {
                   <option value="inactive">Inativos</option>
                 </Select>
                 <span className="ml-auto text-sm text-muted-foreground tabular-nums">
-                  {rows.length}{" "}
-                  {rows.length === 1 ? "aluno" : "alunos"}
+                  {rows.length} {rows.length === 1 ? "aluno" : "alunos"}
                 </span>
               </div>
 
@@ -461,7 +461,10 @@ function StudentsPage() {
                           <div className="min-w-0 flex-1">
                             <p className="font-medium">{s.name}</p>
                             <p className="text-sm text-muted-foreground">
-                              {[s.className, s.shift ? SHIFT_LABELS[s.shift] : null]
+                              {[
+                                s.className,
+                                s.shift ? SHIFT_LABELS[s.shift] : null,
+                              ]
                                 .filter(Boolean)
                                 .join(" · ") || "Sem turma"}
                             </p>
@@ -518,6 +521,6 @@ function StudentsPage() {
           );
         }}
       </QueryState>
-    </div>
+    </Page>
   );
 }

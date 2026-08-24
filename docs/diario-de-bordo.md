@@ -56,6 +56,7 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | 2026-08-23 | Hugo | #46 | 1,0 | Redesign v2 (3/4): demais telas no padrão — container consistente (sai `container`), conteúdo em cards claros sobre o canvas (`Table` com `bg-card` + opção `bare`, seções e vazios com `bg-card`); corrige borda dupla da tabela em Alunos |
 | 2026-08-23 | Hugo | #51 | 0,5 | Hotfix: tela branca em produção — `UserMenu` protegido contra `session.user` indefinido (optional chaining + fallback) |
 | 2026-08-23 | Hugo | — | 0,5 | Correções do redesign encontradas ao rodar o app: canvas opaco (`--canvas`) no lugar de `bg-muted/40`, que compunha sobre o rail escuro e deixava o tema claro cinza e o texto secundário ilegível; rota de detalhe do aluno desaninhada (`students_.$studentId`) — antes a URL mudava mas a tela continuava na lista, pois `students.tsx` não tem `<Outlet />` |
+| 2026-08-24 | Hugo | — | 2,0 | Refino visual das telas principais: casca de página compartilhada (`Page`/`PageHeader`/`Section`/`SectionLabel`) no lugar do cabeçalho duplicado em 6 telas; login centralizado com marca e cartão; painel com indicadores mais fortes e atalhos no lugar do vazio; formulário do estudo de caso em cards por seção com barra de salvar fixa; Perguntas e Usuários com formulário em toggle (padrão de Alunos); seta própria no `<select>` (`appearance-none` + SVG em `globals.css`) |
 
 ## M8 — Deploy e operação
 

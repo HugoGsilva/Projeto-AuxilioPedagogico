@@ -14,6 +14,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Page, PageHeader, Section, SectionLabel } from "@/components/page";
 import { QueryState } from "@/components/query-state";
 import { useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
@@ -74,27 +75,23 @@ function AssignmentsPage() {
 
   if (!canManage) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 py-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Atribuições</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Apenas direção e pedagogas gerenciam atribuições aluno↔professora.
-        </p>
-      </div>
+      <Page>
+        <PageHeader
+          title="Atribuições"
+          description="Apenas direção e pedagogas gerenciam atribuições aluno↔professora."
+        />
+      </Page>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Atribuições</h1>
-        <p className="text-sm text-muted-foreground">
-          Vincule professoras aos alunos. O acesso da professora é filtrado no
-          servidor.
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title="Atribuições"
+        description="Vincule professoras aos alunos. O acesso da professora é filtrado no servidor."
+      />
 
-      <section className="space-y-4 rounded-lg border border-border bg-card p-5">
-        <h2 className="font-medium">Nova atribuição</h2>
+      <Section title="Nova atribuição">
         <form
           className="grid gap-4 sm:grid-cols-2"
           onSubmit={(e) => {
@@ -148,10 +145,10 @@ function AssignmentsPage() {
             </Button>
           </div>
         </form>
-      </section>
+      </Section>
 
       <section className="space-y-3">
-        <h2 className="font-medium">Lista</h2>
+        <SectionLabel>Lista</SectionLabel>
         <QueryState
           query={assignmentsQuery}
           isEmpty={(rows) => rows.length === 0}
@@ -198,6 +195,6 @@ function AssignmentsPage() {
           )}
         </QueryState>
       </section>
-    </div>
+    </Page>
   );
 }

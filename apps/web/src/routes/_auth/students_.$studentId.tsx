@@ -1,4 +1,7 @@
-import { Button, buttonVariants } from "@auxilio-pedagogico/ui/components/button";
+import {
+  Button,
+  buttonVariants,
+} from "@auxilio-pedagogico/ui/components/button";
 import {
   Empty,
   EmptyDescription,
@@ -15,8 +18,16 @@ import {
 } from "@auxilio-pedagogico/ui/components/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  Page,
+  PageBackIcon,
+  pageBackClass,
+  PageHeader,
+  SectionLabel,
+} from "@/components/page";
 import { QueryState } from "@/components/query-state";
 import { Can } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
@@ -68,46 +79,46 @@ function StudentCaseStudiesPage() {
   const errorMessage = studentQuery.error?.message;
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-6">
-      <div className="space-y-2">
-        <Link
-          to="/students"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          Voltar para alunos
-        </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Estudos de caso
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {studentQuery.data
+    <Page>
+      <PageHeader
+        back={
+          <Link to="/students" className={pageBackClass}>
+            <PageBackIcon />
+            Voltar para alunos
+          </Link>
+        }
+        title="Estudos de caso"
+        description={
+          studentQuery.data
             ? `${studentQuery.data.name}${
                 studentQuery.data.className
                   ? ` · ${studentQuery.data.className}`
                   : ""
               }`
-            : "Acompanhe os estudos de caso deste aluno."}
-        </p>
-      </div>
+            : "Acompanhe os estudos de caso deste aluno."
+        }
+        actions={
+          !errorMessage ? (
+            <Can permission="editCaseStudy">
+              <Button
+                type="button"
+                disabled={createMutation.isPending || isLoading}
+                onClick={() => createMutation.mutate({ studentId })}
+              >
+                <Plus />
+                Novo estudo de caso
+              </Button>
+            </Can>
+          ) : null
+        }
+      />
 
       {errorMessage ? (
         <p className="text-sm text-destructive">{errorMessage}</p>
       ) : null}
 
-      {!errorMessage ? (
-        <Can permission="editCaseStudy">
-          <Button
-            type="button"
-            disabled={createMutation.isPending || isLoading}
-            onClick={() => createMutation.mutate({ studentId })}
-          >
-            Novo estudo de caso
-          </Button>
-        </Can>
-      ) : null}
-
       <section className="space-y-3">
-        <h2 className="font-medium">Lista</h2>
+        <SectionLabel>Lista</SectionLabel>
         <QueryState
           query={caseStudiesQuery}
           isEmpty={(rows) => rows.length === 0}
@@ -156,6 +167,6 @@ function StudentCaseStudiesPage() {
           )}
         </QueryState>
       </section>
-    </div>
+    </Page>
   );
 }
