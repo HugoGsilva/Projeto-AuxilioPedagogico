@@ -3,12 +3,6 @@ import {
   buttonVariants,
 } from "@auxilio-pedagogico/ui/components/button";
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@auxilio-pedagogico/ui/components/empty";
-import {
   Table,
   TableBody,
   TableCell,
@@ -18,9 +12,10 @@ import {
 } from "@auxilio-pedagogico/ui/components/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/empty-state";
 import {
   Page,
   PageBackIcon,
@@ -123,15 +118,23 @@ function StudentCaseStudiesPage() {
           query={caseStudiesQuery}
           isEmpty={(rows) => rows.length === 0}
           empty={
-            <Empty className="border border-border bg-card">
-              <EmptyHeader>
-                <EmptyTitle>Nenhum estudo de caso</EmptyTitle>
-                <EmptyDescription>
-                  Crie o primeiro estudo de caso deste aluno para começar o
-                  preenchimento.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <EmptyState
+              icon={FileText}
+              title="Ainda não há estudos de caso"
+              description="Crie o primeiro estudo de caso deste aluno para começar o preenchimento."
+              action={
+                <Can permission="editCaseStudy">
+                  <Button
+                    type="button"
+                    disabled={createMutation.isPending || isLoading}
+                    onClick={() => createMutation.mutate({ studentId })}
+                  >
+                    <Plus />
+                    Novo estudo de caso
+                  </Button>
+                </Can>
+              }
+            />
           }
         >
           {(caseStudies) => (

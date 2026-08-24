@@ -13,10 +13,11 @@ import {
 } from "@auxilio-pedagogico/ui/components/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/empty-state";
 import { Page, PageHeader, Section, SectionLabel } from "@/components/page";
 import { QueryState } from "@/components/query-state";
 import { trpc } from "@/utils/trpc";
@@ -176,30 +177,106 @@ function UsersPage() {
           query={usersQuery}
           isEmpty={(rows) => rows.length === 0}
           empty={
-            <p className="text-sm text-muted-foreground">
-              Nenhum usuário cadastrado.
-            </p>
+            <EmptyState
+              icon={UsersRound}
+              title="Ainda não há usuários"
+              description="Crie a primeira conta para que a equipe consiga entrar no sistema."
+              action={
+                <Button onClick={() => setFormOpen(true)}>
+                  <Plus />
+                  Novo usuário
+                </Button>
+              }
+            />
           }
         >
           {(users) => (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>E-mail</TableHead>
-                  <TableHead>Perfil</TableHead>
-                  <TableHead>Situação</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Tabela só a partir de lg */}
+              <div className="hidden lg:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>Perfil</TableHead>
+                      <TableHead>Situação</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((u) => (
+                      <TableRow key={u.id}>
+                        <TableCell>{u.name}</TableCell>
+                        <TableCell>{u.email}</TableCell>
+                        <TableCell>
+                          <Select
+                            className="w-auto"
+                            value={u.role}
+                            disabled={updateMutation.isPending}
+                            onChange={(e) =>
+                              updateMutation.mutate({
+                                id: u.id,
+                                role: e.target
+                                  .value as (typeof ROLE_OPTIONS)[number],
+                              })
+                            }
+                          >
+                            {ROLE_OPTIONS.map((value) => (
+                              <option key={value} value={value}>
+                                {ROLE_LABELS[value]}
+                              </option>
+                            ))}
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={u.active ? "success" : "muted"}>
+                            {u.active ? "Ativo" : "Desativado"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={setActiveMutation.isPending}
+                            onClick={() =>
+                              setActiveMutation.mutate({
+                                id: u.id,
+                                active: !u.active,
+                              })
+                            }
+                          >
+                            {u.active ? "Desativar" : "Reativar"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile: cards — na tabela as colunas de ação saíam da tela. */}
+              <ul className="space-y-3 lg:hidden">
                 {users.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell>{u.name}</TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>
+                  <li
+                    key={u.id}
+                    className="space-y-3 rounded-lg border border-border bg-card p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium">{u.name}</p>
+                        <p className="truncate text-sm text-muted-foreground">
+                          {u.email}
+                        </p>
+                      </div>
+                      <Badge variant={u.active ? "success" : "muted"}>
+                        {u.active ? "Ativo" : "Desativado"}
+                      </Badge>
+                    </div>
+                    <Field>
+                      <FieldLabel htmlFor={`role-${u.id}`}>Perfil</FieldLabel>
                       <Select
-                        className="w-auto"
+                        id={`role-${u.id}`}
                         value={u.role}
                         disabled={updateMutation.isPending}
                         onChange={(e) =>
@@ -216,31 +293,24 @@ function UsersPage() {
                           </option>
                         ))}
                       </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={u.active ? "success" : "muted"}>
-                        {u.active ? "Ativo" : "Desativado"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={setActiveMutation.isPending}
-                        onClick={() =>
-                          setActiveMutation.mutate({
-                            id: u.id,
-                            active: !u.active,
-                          })
-                        }
-                      >
-                        {u.active ? "Desativar" : "Reativar"}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                    </Field>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={setActiveMutation.isPending}
+                      onClick={() =>
+                        setActiveMutation.mutate({
+                          id: u.id,
+                          active: !u.active,
+                        })
+                      }
+                    >
+                      {u.active ? "Desativar" : "Reativar"}
+                    </Button>
+                  </li>
                 ))}
-              </TableBody>
-            </Table>
+              </ul>
+            </>
           )}
         </QueryState>
       </section>

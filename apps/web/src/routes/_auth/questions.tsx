@@ -16,10 +16,11 @@ import {
 import { Textarea } from "@auxilio-pedagogico/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, ClipboardList, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/empty-state";
 import { Page, PageHeader, Section, SectionLabel } from "@/components/page";
 import { QueryState } from "@/components/query-state";
 import { useRole } from "@/lib/access";
@@ -150,6 +151,16 @@ function QuestionsPage() {
       onError: (error) => toast.error(error.message),
     }),
   );
+
+  function startEdit(q: QuestionRow) {
+    setFormOpen(true);
+    setEditingId(q.id);
+    setPrompt(q.prompt);
+    setType(q.type);
+    setSection(q.section ?? "");
+    setRequired(q.required);
+    setOptionsText(Array.isArray(q.options) ? q.options.join("\n") : "");
+  }
 
   function resetForm() {
     setFormOpen(false);
@@ -317,9 +328,22 @@ function QuestionsPage() {
           query={questionsQuery}
           isEmpty={(rows) => rows.length === 0}
           empty={
-            <p className="text-sm text-muted-foreground">
-              Nenhuma pergunta cadastrada.
-            </p>
+            <EmptyState
+              icon={ClipboardList}
+              title="Ainda não há perguntas"
+              description="Cadastre a primeira pergunta para que o estudo de caso tenha o que preencher."
+              action={
+                <Button
+                  onClick={() => {
+                    resetForm();
+                    setFormOpen(true);
+                  }}
+                >
+                  <Plus />
+                  Nova pergunta
+                </Button>
+              }
+            />
           }
         >
           {(rows) =>
@@ -328,102 +352,170 @@ function QuestionsPage() {
                 <h3 className="text-sm font-medium text-muted-foreground">
                   {group.section}
                 </h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ordem</TableHead>
-                      <TableHead>Enunciado</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Obrig.</TableHead>
-                      <TableHead>Situação</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {group.items.map((q, index) => (
-                      <TableRow key={q.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <span className="tabular-nums">{q.sortOrder}</span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={
-                                index === 0 || reorderMutation.isPending
-                              }
-                              onClick={() =>
-                                moveQuestion(group.items, q.id, "up")
-                              }
-                              aria-label="Mover para cima"
-                            >
-                              ↑
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={
-                                index === group.items.length - 1 ||
-                                reorderMutation.isPending
-                              }
-                              onClick={() =>
-                                moveQuestion(group.items, q.id, "down")
-                              }
-                              aria-label="Mover para baixo"
-                            >
-                              ↓
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell>{q.prompt}</TableCell>
-                        <TableCell>{TYPE_LABELS[q.type] ?? q.type}</TableCell>
-                        <TableCell>{q.required ? "Sim" : "Não"}</TableCell>
-                        <TableCell>
-                          <Badge variant={q.active ? "success" : "muted"}>
-                            {q.active ? "Ativa" : "Inativa"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setFormOpen(true);
-                                setEditingId(q.id);
-                                setPrompt(q.prompt);
-                                setType(q.type);
-                                setSection(q.section ?? "");
-                                setRequired(q.required);
-                                setOptionsText(
-                                  Array.isArray(q.options)
-                                    ? q.options.join("\n")
-                                    : "",
-                                );
-                              }}
-                            >
-                              Editar
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={setActiveMutation.isPending}
-                              onClick={() =>
-                                setActiveMutation.mutate({
-                                  id: q.id,
-                                  active: !q.active,
-                                })
-                              }
-                            >
-                              {q.active ? "Desativar" : "Reativar"}
-                            </Button>
-                          </div>
-                        </TableCell>
+                {/* Tabela só a partir de lg */}
+                <div className="hidden lg:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Ordem</TableHead>
+                        <TableHead>Enunciado</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Obrig.</TableHead>
+                        <TableHead>Situação</TableHead>
+                        <TableHead>Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {group.items.map((q, index) => (
+                        <TableRow key={q.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <span className="tabular-nums">
+                                {q.sortOrder}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  index === 0 || reorderMutation.isPending
+                                }
+                                onClick={() =>
+                                  moveQuestion(group.items, q.id, "up")
+                                }
+                                aria-label="Mover para cima"
+                              >
+                                ↑
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  index === group.items.length - 1 ||
+                                  reorderMutation.isPending
+                                }
+                                onClick={() =>
+                                  moveQuestion(group.items, q.id, "down")
+                                }
+                                aria-label="Mover para baixo"
+                              >
+                                ↓
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell>{q.prompt}</TableCell>
+                          <TableCell>{TYPE_LABELS[q.type] ?? q.type}</TableCell>
+                          <TableCell>{q.required ? "Sim" : "Não"}</TableCell>
+                          <TableCell>
+                            <Badge variant={q.active ? "success" : "muted"}>
+                              {q.active ? "Ativa" : "Inativa"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => startEdit(q)}
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={setActiveMutation.isPending}
+                                onClick={() =>
+                                  setActiveMutation.mutate({
+                                    id: q.id,
+                                    active: !q.active,
+                                  })
+                                }
+                              >
+                                {q.active ? "Desativar" : "Reativar"}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile: cards — a tabela tem seis colunas e as ações
+                    ficavam fora da tela. */}
+                <ul className="space-y-3 lg:hidden">
+                  {group.items.map((q, index) => (
+                    <li
+                      key={q.id}
+                      className="space-y-3 rounded-lg border border-border bg-card p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="min-w-0 font-medium text-pretty">
+                          {q.prompt}
+                        </p>
+                        <Badge variant={q.active ? "success" : "muted"}>
+                          {q.active ? "Ativa" : "Inativa"}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {TYPE_LABELS[q.type] ?? q.type} ·{" "}
+                        {q.required ? "Obrigatória" : "Opcional"}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground tabular-nums">
+                          #{q.sortOrder}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          disabled={index === 0 || reorderMutation.isPending}
+                          onClick={() => moveQuestion(group.items, q.id, "up")}
+                          aria-label="Mover para cima"
+                        >
+                          <ArrowUp />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          disabled={
+                            index === group.items.length - 1 ||
+                            reorderMutation.isPending
+                          }
+                          onClick={() =>
+                            moveQuestion(group.items, q.id, "down")
+                          }
+                          aria-label="Mover para baixo"
+                        >
+                          <ArrowDown />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="ml-auto"
+                          onClick={() => startEdit(q)}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={setActiveMutation.isPending}
+                          onClick={() =>
+                            setActiveMutation.mutate({
+                              id: q.id,
+                              active: !q.active,
+                            })
+                          }
+                        >
+                          {q.active ? "Desativar" : "Reativar"}
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))
           }

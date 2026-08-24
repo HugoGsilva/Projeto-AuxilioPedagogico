@@ -1,10 +1,7 @@
-import { Button } from "@auxilio-pedagogico/ui/components/button";
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@auxilio-pedagogico/ui/components/empty";
+  Button,
+  buttonVariants,
+} from "@auxilio-pedagogico/ui/components/button";
 import { Field, FieldLabel } from "@auxilio-pedagogico/ui/components/field";
 import { Input } from "@auxilio-pedagogico/ui/components/input";
 import { Select } from "@auxilio-pedagogico/ui/components/select";
@@ -12,9 +9,11 @@ import { Skeleton } from "@auxilio-pedagogico/ui/components/skeleton";
 import { Textarea } from "@auxilio-pedagogico/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { ClipboardList } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/empty-state";
 import {
   Page,
   PageBackIcon,
@@ -72,7 +71,9 @@ function CaseStudyFormPage() {
   const { caseStudyId } = Route.useParams();
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
-  const canEdit = useRole().can("editCaseStudy");
+  const { can } = useRole();
+  const canEdit = can("editCaseStudy");
+  const canConfigureQuestions = can("configureQuestions");
 
   const caseStudyQuery = useQuery({
     ...trpc.caseStudy.byId.queryOptions({ id: caseStudyId }),
@@ -221,15 +222,18 @@ function CaseStudyFormPage() {
       ) : null}
 
       {emptyForm ? (
-        <Empty className="border border-border bg-card">
-          <EmptyHeader>
-            <EmptyTitle>Nenhuma pergunta para preencher</EmptyTitle>
-            <EmptyDescription>
-              Configure as perguntas do estudo de caso antes de registrar
-              respostas.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <EmptyState
+          icon={ClipboardList}
+          title="Ainda não há perguntas para preencher"
+          description="Configure as perguntas do estudo de caso antes de registrar respostas."
+          action={
+            canConfigureQuestions ? (
+              <Link to="/questions" className={buttonVariants()}>
+                Configurar perguntas
+              </Link>
+            ) : null
+          }
+        />
       ) : null}
 
       {!isLoading && !errorMessage && fields.length > 0 ? (
