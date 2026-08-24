@@ -8,7 +8,7 @@ import { Select } from "@auxilio-pedagogico/ui/components/select";
 import { Skeleton } from "@auxilio-pedagogico/ui/components/skeleton";
 import { Textarea } from "@auxilio-pedagogico/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ClipboardList } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -70,6 +70,7 @@ function groupFields(fields: FormField[]): {
 function CaseStudyFormPage() {
   const { caseStudyId } = Route.useParams();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: session } = authClient.useSession();
   const { can } = useRole();
   const canEdit = can("editCaseStudy");
@@ -148,10 +149,27 @@ function CaseStudyFormPage() {
   const saveMutation = useMutation(
     trpc.caseStudy.saveAnswers.mutationOptions({
       onSuccess: async () => {
-        toast.success("Respostas salvas");
         await queryClient.invalidateQueries(
           trpc.caseStudy.byId.queryFilter({ id: caseStudyId }),
         );
+
+        /* Sair da tela ao salvar: o formulário é longo e continuar nele, com
+         * os mesmos campos preenchidos, não deixa claro que o registro foi
+         * concluído. Volta para a lista de estudos de caso do aluno, que
+         * mostra o "Atualizado em" recém-gravado. Sem studentId (a query do
+         * estudo ainda não respondeu) fica na tela e só avisa. */
+        const backTo = caseStudyQuery.data?.studentId;
+        if (backTo) {
+          toast.success("Respostas salvas", {
+            description: "O estudo de caso foi atualizado.",
+          });
+          await navigate({
+            to: "/students/$studentId",
+            params: { studentId: backTo },
+          });
+        } else {
+          toast.success("Respostas salvas");
+        }
       },
       onError: (error) => toast.error(error.message),
     }),

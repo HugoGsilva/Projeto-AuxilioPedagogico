@@ -129,14 +129,24 @@ function DashboardPage() {
 
   const canViewStudents = can("viewCaseStudy");
   const canManageUsers = can("manageUsers");
+  const canConfigureQuestions = can("configureQuestions");
 
   const studentsQuery = useQuery({
     ...trpc.student.list.queryOptions(),
     enabled: Boolean(userId) && canViewStudents,
   });
+  /* Contagem de perguntas ativas por dois caminhos, porque as rotas pedem
+   * permissões diferentes: `listActive` exige `viewCaseStudy` e `list` exige
+   * `configureQuestions`. O it_admin tem só a segunda — chamar `listActive`
+   * para todo mundo devolvia 403 e, via `QueryCache.onError`, virava o toast
+   * "Permissão negada: viewCaseStudy" a cada refetch. */
   const activeQuestionsQuery = useQuery({
     ...trpc.question.listActive.queryOptions(),
-    enabled: Boolean(userId),
+    enabled: Boolean(userId) && canViewStudents,
+  });
+  const allQuestionsQuery = useQuery({
+    ...trpc.question.list.queryOptions(),
+    enabled: Boolean(userId) && !canViewStudents && canConfigureQuestions,
   });
   const usersQuery = useQuery({
     ...trpc.user.list.queryOptions(),
@@ -144,6 +154,14 @@ function DashboardPage() {
   });
 
   const activeStudents = studentsQuery.data?.filter((s) => s.active).length;
+
+  const questionsQuery = canViewStudents
+    ? activeQuestionsQuery
+    : allQuestionsQuery;
+  const activeQuestions = canViewStudents
+    ? activeQuestionsQuery.data?.length
+    : allQuestionsQuery.data?.filter((q) => q.active).length;
+  const canSeeQuestionCount = canViewStudents || canConfigureQuestions;
   const shortcuts = SHORTCUTS.filter((item) => can(item.permission));
 
   const firstName = (
@@ -164,12 +182,12 @@ function DashboardPage() {
       to: "/students",
       icon: GraduationCap,
     },
-    {
+    canSeeQuestionCount && {
       label: "Perguntas ativas",
-      value: activeQuestionsQuery.isPending ? (
+      value: questionsQuery.isPending ? (
         <Skeleton className="h-9 w-12" />
       ) : (
-        (activeQuestionsQuery.data?.length ?? "—")
+        (activeQuestions ?? "—")
       ),
       hint: "Configurar",
       to: "/questions",

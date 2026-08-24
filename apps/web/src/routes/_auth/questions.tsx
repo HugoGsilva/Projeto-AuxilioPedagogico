@@ -73,6 +73,23 @@ type QuestionRow = {
   options: string[] | null;
 };
 
+/**
+ * Valor sentinela do select de seção. Não pode colidir com uma seção real,
+ * e a seção passa por `z.string().trim()` no servidor — um valor com espaços
+ * nas pontas nunca sobrevive como rótulo salvo.
+ */
+const NEW_SECTION = "  __nova__  ";
+
+/** Seções já em uso, únicas e ordenadas — alimenta o select do formulário. */
+function existingSections(rows: QuestionRow[]): string[] {
+  const set = new Set<string>();
+  for (const row of rows) {
+    const label = row.section?.trim();
+    if (label) set.add(label);
+  }
+  return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
 function groupBySection(rows: QuestionRow[]): {
   section: string;
   items: QuestionRow[];
@@ -109,6 +126,7 @@ function QuestionsPage() {
   const [optionsText, setOptionsText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [creatingSection, setCreatingSection] = useState(false);
 
   const createMutation = useMutation(
     trpc.question.create.mutationOptions({
@@ -152,8 +170,13 @@ function QuestionsPage() {
     }),
   );
 
+  const sections = existingSections(
+    (questionsQuery.data ?? []) as QuestionRow[],
+  );
+
   function startEdit(q: QuestionRow) {
     setFormOpen(true);
+    setCreatingSection(false);
     setEditingId(q.id);
     setPrompt(q.prompt);
     setType(q.type);
@@ -164,6 +187,7 @@ function QuestionsPage() {
 
   function resetForm() {
     setFormOpen(false);
+    setCreatingSection(false);
     setEditingId(null);
     setPrompt("");
     setType("short_text");
@@ -278,12 +302,56 @@ function QuestionsPage() {
             </Field>
             <Field>
               <FieldLabel htmlFor="question-section">Seção</FieldLabel>
-              <Input
-                id="question-section"
-                value={section}
-                onChange={(e) => setSection(e.target.value)}
-                placeholder="Ex.: Informações pedagógicas"
-              />
+              {/* Escolher de uma lista em vez de redigitar: a seção é texto
+                  livre e agrupa as perguntas por igualdade exata, então
+                  "Informações pedagógicas" e "Informacões pedagógicas" viravam
+                  dois grupos. Criar continua possível, mas é um passo
+                  deliberado. */}
+              {sections.length > 0 && !creatingSection ? (
+                <Select
+                  id="question-section"
+                  value={section}
+                  onChange={(e) => {
+                    if (e.target.value === NEW_SECTION) {
+                      setCreatingSection(true);
+                      setSection("");
+                      return;
+                    }
+                    setSection(e.target.value);
+                  }}
+                >
+                  <option value="">Sem seção</option>
+                  {sections.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                  <option value={NEW_SECTION}>+ Nova seção…</option>
+                </Select>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    id="question-section"
+                    value={section}
+                    onChange={(e) => setSection(e.target.value)}
+                    placeholder="Ex.: Informações pedagógicas"
+                    maxLength={120}
+                    autoFocus={creatingSection}
+                  />
+                  {sections.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setCreatingSection(false);
+                        setSection("");
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  ) : null}
+                </div>
+              )}
             </Field>
             <div className="flex items-center gap-2 sm:col-span-2">
               <Checkbox
