@@ -1,4 +1,7 @@
-import { Button } from "@auxilio-pedagogico/ui/components/button";
+import {
+  Button,
+  buttonVariants,
+} from "@auxilio-pedagogico/ui/components/button";
 import { Field, FieldLabel } from "@auxilio-pedagogico/ui/components/field";
 import { Select } from "@auxilio-pedagogico/ui/components/select";
 import {
@@ -10,10 +13,13 @@ import {
   TableRow,
 } from "@auxilio-pedagogico/ui/components/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { Waypoints } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/empty-state";
+import { Page, PageHeader, Section, SectionLabel } from "@/components/page";
 import { QueryState } from "@/components/query-state";
 import { useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
@@ -40,6 +46,13 @@ function AssignmentsPage() {
     ...trpc.studentAssignment.teachers.queryOptions(),
     enabled: Boolean(session?.user?.id) && canManage,
   });
+
+  /* O vínculo depende de existir aluno E professora. Sem isso, o formulário
+   * acima fica com dois selects vazios e mandar "vincule no formulário" seria
+   * enganoso — o vazio precisa apontar o que falta de verdade. */
+  const hasStudents = (studentsQuery.data?.length ?? 0) > 0;
+  const hasTeachers = (teachersQuery.data?.length ?? 0) > 0;
+  const missingPrerequisite = !hasStudents || !hasTeachers;
 
   const [studentId, setStudentId] = useState("");
   const [teacherId, setTeacherId] = useState("");
@@ -74,27 +87,23 @@ function AssignmentsPage() {
 
   if (!canManage) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 py-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Atribuições</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Apenas direção e pedagogas gerenciam atribuições aluno↔professora.
-        </p>
-      </div>
+      <Page>
+        <PageHeader
+          title="Atribuições"
+          description="Apenas direção e pedagogas gerenciam atribuições aluno↔professora."
+        />
+      </Page>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Atribuições</h1>
-        <p className="text-sm text-muted-foreground">
-          Vincule professoras aos alunos. O acesso da professora é filtrado no
-          servidor.
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title="Atribuições"
+        description="Vincule professoras aos alunos. O acesso da professora é filtrado no servidor."
+      />
 
-      <section className="space-y-4 rounded-lg border border-border bg-card p-5">
-        <h2 className="font-medium">Nova atribuição</h2>
+      <Section title="Nova atribuição">
         <form
           className="grid gap-4 sm:grid-cols-2"
           onSubmit={(e) => {
@@ -148,56 +157,109 @@ function AssignmentsPage() {
             </Button>
           </div>
         </form>
-      </section>
+      </Section>
 
       <section className="space-y-3">
-        <h2 className="font-medium">Lista</h2>
+        <SectionLabel>Lista</SectionLabel>
         <QueryState
           query={assignmentsQuery}
           isEmpty={(rows) => rows.length === 0}
           empty={
-            <p className="text-sm text-muted-foreground">
-              Nenhuma atribuição cadastrada.
-            </p>
+            <EmptyState
+              icon={Waypoints}
+              title="Ainda não há atribuições"
+              description={
+                hasStudents && hasTeachers
+                  ? "Vincule uma professora a um aluno no formulário acima. Sem vínculo, a professora não enxerga nenhum aluno."
+                  : !hasStudents && !hasTeachers
+                    ? "Antes de vincular, cadastre pelo menos um aluno e uma conta com perfil de professora."
+                    : !hasStudents
+                      ? "Cadastre pelo menos um aluno antes de vincular uma professora."
+                      : "Crie uma conta com perfil de professora antes de vincular um aluno."
+              }
+              action={
+                missingPrerequisite ? (
+                  <Link
+                    to={!hasStudents ? "/students" : "/users"}
+                    className={buttonVariants()}
+                  >
+                    {!hasStudents ? "Cadastrar alunos" : "Criar conta"}
+                  </Link>
+                ) : null
+              }
+            />
           }
         >
           {(assignments) => (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Aluno</TableHead>
-                  <TableHead>Professora</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Tabela só a partir de lg */}
+              <div className="hidden lg:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Aluno</TableHead>
+                      <TableHead>Professora</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {assignments.map((a) => (
+                      <TableRow key={a.id}>
+                        <TableCell>{a.studentName}</TableCell>
+                        <TableCell>
+                          {a.teacherName}
+                          <span className="text-muted-foreground">
+                            {" "}
+                            ({a.teacherEmail})
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={removeMutation.isPending}
+                            onClick={() => removeMutation.mutate({ id: a.id })}
+                          >
+                            Remover
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile: cards — na tabela a ação "Remover" saía da tela. */}
+              <ul className="space-y-3 lg:hidden">
                 {assignments.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell>{a.studentName}</TableCell>
-                    <TableCell>
-                      {a.teacherName}
-                      <span className="text-muted-foreground">
-                        {" "}
-                        ({a.teacherEmail})
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={removeMutation.isPending}
-                        onClick={() => removeMutation.mutate({ id: a.id })}
-                      >
-                        Remover
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  <li
+                    key={a.id}
+                    className="space-y-3 rounded-lg border border-border bg-card p-4"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium">{a.studentName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {a.teacherName}
+                      </p>
+                      <p className="truncate text-sm text-muted-foreground">
+                        {a.teacherEmail}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={removeMutation.isPending}
+                      onClick={() => removeMutation.mutate({ id: a.id })}
+                    >
+                      Remover
+                    </Button>
+                  </li>
                 ))}
-              </TableBody>
-            </Table>
+              </ul>
+            </>
           )}
         </QueryState>
       </section>
-    </div>
+    </Page>
   );
 }

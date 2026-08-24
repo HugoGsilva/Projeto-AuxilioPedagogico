@@ -1,12 +1,9 @@
 import { Badge } from "@auxilio-pedagogico/ui/components/badge";
-import { Button, buttonVariants } from "@auxilio-pedagogico/ui/components/button";
-import { Callout } from "@auxilio-pedagogico/ui/components/callout";
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@auxilio-pedagogico/ui/components/empty";
+  Button,
+  buttonVariants,
+} from "@auxilio-pedagogico/ui/components/button";
+import { Callout } from "@auxilio-pedagogico/ui/components/callout";
 import { Field, FieldLabel } from "@auxilio-pedagogico/ui/components/field";
 import { Input } from "@auxilio-pedagogico/ui/components/input";
 import { Select } from "@auxilio-pedagogico/ui/components/select";
@@ -21,10 +18,20 @@ import {
 import { cn } from "@auxilio-pedagogico/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { FileDown, Info, Pencil, Plus, Power, Search } from "lucide-react";
+import {
+  FileDown,
+  GraduationCap,
+  Info,
+  Pencil,
+  Plus,
+  Power,
+  Search,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/empty-state";
+import { Page, PageHeader, Section } from "@/components/page";
 import { QueryState } from "@/components/query-state";
 import { useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
@@ -186,21 +193,19 @@ function StudentsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6">
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">Alunos</h1>
-          <p className="text-sm text-muted-foreground">
-            Cadastro e acompanhamento dos estudos de caso.
-          </p>
-        </div>
-        {canManage ? (
-          <Button className="ml-auto" onClick={startCreate}>
-            <Plus />
-            Novo aluno
-          </Button>
-        ) : null}
-      </div>
+    <Page>
+      <PageHeader
+        title="Alunos"
+        description="Cadastro e acompanhamento dos estudos de caso."
+        actions={
+          canManage && !formOpen ? (
+            <Button onClick={startCreate}>
+              <Plus />
+              Novo aluno
+            </Button>
+          ) : null
+        }
+      />
 
       {isTeacher ? (
         <Callout>
@@ -210,10 +215,7 @@ function StudentsPage() {
       ) : null}
 
       {canManage && formOpen ? (
-        <section className="space-y-4 rounded-lg border border-border bg-card p-5">
-          <h2 className="font-medium">
-            {editingId ? "Editar cadastro do aluno" : "Novo aluno"}
-          </h2>
+        <Section title={editingId ? "Editar cadastro do aluno" : "Novo aluno"}>
           <form className="grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>
             <Field>
               <FieldLabel htmlFor="student-name" required>
@@ -236,7 +238,9 @@ function StudentsPage() {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="student-birth">Data de nascimento</FieldLabel>
+              <FieldLabel htmlFor="student-birth">
+                Data de nascimento
+              </FieldLabel>
               <Input
                 id="student-birth"
                 type="date"
@@ -287,30 +291,37 @@ function StudentsPage() {
               </Button>
             </div>
           </form>
-        </section>
+        </Section>
       ) : null}
 
       <QueryState
         query={studentsQuery}
         isEmpty={(rows) => rows.length === 0}
         empty={
-          <Empty className="border border-border bg-card">
-            <EmptyHeader>
-              <EmptyTitle>Nenhum aluno listado</EmptyTitle>
-              <EmptyDescription>
-                {canManage
-                  ? 'Cadastre o primeiro aluno com o botão "Novo aluno".'
-                  : "Nenhum aluno atribuído a você no momento. Fale com a direção ou a pedagoga."}
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          <EmptyState
+            icon={GraduationCap}
+            title="Ainda não há alunos"
+            description={
+              canManage
+                ? "Cadastre o primeiro aluno para começar a registrar estudos de caso."
+                : "Nenhum aluno atribuído a você no momento. Fale com a direção ou a pedagoga."
+            }
+            action={
+              canManage ? (
+                <Button onClick={startCreate}>
+                  <Plus />
+                  Novo aluno
+                </Button>
+              ) : null
+            }
+          />
         }
       >
         {(students) => {
           const rows = filterStudents(students as Student[]);
           return (
             <section className="overflow-hidden rounded-lg border border-border bg-card">
-              <div className="flex flex-wrap items-center gap-3 border-b border-border p-3">
+              <div className="flex flex-col gap-3 border-b border-border p-3 sm:flex-row sm:items-center">
                 <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm">
                   <Search className="size-4 shrink-0 text-muted-foreground" />
                   <input
@@ -328,15 +339,14 @@ function StudentsPage() {
                     setStatusFilter(e.target.value as StatusFilter)
                   }
                   aria-label="Filtrar por situação"
-                  className="h-10 w-auto"
+                  className="h-10 w-full sm:w-auto"
                 >
                   <option value="all">Situação: Todas</option>
                   <option value="active">Ativos</option>
                   <option value="inactive">Inativos</option>
                 </Select>
-                <span className="ml-auto text-sm text-muted-foreground tabular-nums">
-                  {rows.length}{" "}
-                  {rows.length === 1 ? "aluno" : "alunos"}
+                <span className="text-sm text-muted-foreground tabular-nums sm:ml-auto">
+                  {rows.length} {rows.length === 1 ? "aluno" : "alunos"}
                 </span>
               </div>
 
@@ -346,8 +356,8 @@ function StudentsPage() {
                 </p>
               ) : (
                 <>
-                  {/* Desktop: tabela */}
-                  <div className="hidden sm:block">
+                  {/* Tabela só a partir de lg */}
+                  <div className="hidden lg:block">
                     <Table bare>
                       <TableHeader>
                         <TableRow>
@@ -454,14 +464,17 @@ function StudentsPage() {
                   </div>
 
                   {/* Mobile: cards */}
-                  <ul className="divide-y divide-border sm:hidden">
+                  <ul className="divide-y divide-border lg:hidden">
                     {rows.map((s) => (
                       <li key={s.id} className="space-y-3 p-4">
                         <div className="flex items-start gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="font-medium">{s.name}</p>
                             <p className="text-sm text-muted-foreground">
-                              {[s.className, s.shift ? SHIFT_LABELS[s.shift] : null]
+                              {[
+                                s.className,
+                                s.shift ? SHIFT_LABELS[s.shift] : null,
+                              ]
                                 .filter(Boolean)
                                 .join(" · ") || "Sem turma"}
                             </p>
@@ -518,6 +531,6 @@ function StudentsPage() {
           );
         }}
       </QueryState>
-    </div>
+    </Page>
   );
 }

@@ -16,9 +16,12 @@ import {
 import { Textarea } from "@auxilio-pedagogico/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { ArrowDown, ArrowUp, ClipboardList, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/empty-state";
+import { Page, PageHeader, Section, SectionLabel } from "@/components/page";
 import { QueryState } from "@/components/query-state";
 import { useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
@@ -105,6 +108,7 @@ function QuestionsPage() {
   const [required, setRequired] = useState(false);
   const [optionsText, setOptionsText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   const createMutation = useMutation(
     trpc.question.create.mutationOptions({
@@ -148,7 +152,18 @@ function QuestionsPage() {
     }),
   );
 
+  function startEdit(q: QuestionRow) {
+    setFormOpen(true);
+    setEditingId(q.id);
+    setPrompt(q.prompt);
+    setType(q.type);
+    setSection(q.section ?? "");
+    setRequired(q.required);
+    setOptionsText(Array.isArray(q.options) ? q.options.join("\n") : "");
+  }
+
   function resetForm() {
+    setFormOpen(false);
     setEditingId(null);
     setPrompt("");
     setType("short_text");
@@ -203,113 +218,132 @@ function QuestionsPage() {
 
   if (!canConfigure) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 py-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Perguntas</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Apenas direção, TI e pedagogas configuram as perguntas do estudo de
-          caso.
-        </p>
-      </div>
+      <Page>
+        <PageHeader
+          title="Perguntas"
+          description="Apenas direção, TI e pedagogas configuram as perguntas do estudo de caso."
+        />
+      </Page>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Perguntas</h1>
-        <p className="text-sm text-muted-foreground">
-          Configure enunciados, tipos, seções e a ordem das perguntas do estudo
-          de caso.
-        </p>
-      </div>
-
-      <section className="space-y-4 rounded-lg border border-border bg-card p-5">
-        <h2 className="font-medium">
-          {editingId ? "Editar pergunta" : "Nova pergunta"}
-        </h2>
-        <form className="grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>
-          <Field className="sm:col-span-2">
-            <FieldLabel htmlFor="question-prompt" required>
-              Enunciado
-            </FieldLabel>
-            <Textarea
-              id="question-prompt"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              required
-              minLength={3}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="question-type">Tipo</FieldLabel>
-            <Select
-              id="question-type"
-              value={type}
-              onChange={(e) => setType(e.target.value as QuestionType)}
+    <Page>
+      <PageHeader
+        title="Perguntas"
+        description="Configure enunciados, tipos, seções e a ordem das perguntas do estudo de caso."
+        actions={
+          formOpen ? null : (
+            <Button
+              onClick={() => {
+                resetForm();
+                setFormOpen(true);
+              }}
             >
-              {QUESTION_TYPES.map((value) => (
-                <option key={value} value={value}>
-                  {TYPE_LABELS[value]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="question-section">Seção</FieldLabel>
-            <Input
-              id="question-section"
-              value={section}
-              onChange={(e) => setSection(e.target.value)}
-              placeholder="Ex.: Informações pedagógicas"
-            />
-          </Field>
-          <div className="flex items-center gap-2 sm:col-span-2">
-            <Checkbox
-              id="question-required"
-              checked={required}
-              onCheckedChange={(checked) => setRequired(checked === true)}
-            />
-            <Label htmlFor="question-required">Obrigatória</Label>
-          </div>
-          {typeNeedsOptions(type) ? (
+              <Plus />
+              Nova pergunta
+            </Button>
+          )
+        }
+      />
+
+      {formOpen ? (
+        <Section title={editingId ? "Editar pergunta" : "Nova pergunta"}>
+          <form className="grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>
             <Field className="sm:col-span-2">
-              <FieldLabel htmlFor="question-options" required>
-                Opções (uma por linha)
+              <FieldLabel htmlFor="question-prompt" required>
+                Enunciado
               </FieldLabel>
               <Textarea
-                id="question-options"
-                value={optionsText}
-                onChange={(e) => setOptionsText(e.target.value)}
-                placeholder={"Manhã\nTarde\nIntegral"}
+                id="question-prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
                 required
+                minLength={3}
               />
             </Field>
-          ) : null}
-          <div className="flex gap-2 sm:col-span-2">
-            <Button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              {editingId ? "Salvar" : "Cadastrar"}
-            </Button>
-            {editingId ? (
+            <Field>
+              <FieldLabel htmlFor="question-type">Tipo</FieldLabel>
+              <Select
+                id="question-type"
+                value={type}
+                onChange={(e) => setType(e.target.value as QuestionType)}
+              >
+                {QUESTION_TYPES.map((value) => (
+                  <option key={value} value={value}>
+                    {TYPE_LABELS[value]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="question-section">Seção</FieldLabel>
+              <Input
+                id="question-section"
+                value={section}
+                onChange={(e) => setSection(e.target.value)}
+                placeholder="Ex.: Informações pedagógicas"
+              />
+            </Field>
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <Checkbox
+                id="question-required"
+                checked={required}
+                onCheckedChange={(checked) => setRequired(checked === true)}
+              />
+              <Label htmlFor="question-required">Obrigatória</Label>
+            </div>
+            {typeNeedsOptions(type) ? (
+              <Field className="sm:col-span-2">
+                <FieldLabel htmlFor="question-options" required>
+                  Opções (uma por linha)
+                </FieldLabel>
+                <Textarea
+                  id="question-options"
+                  value={optionsText}
+                  onChange={(e) => setOptionsText(e.target.value)}
+                  placeholder={"Manhã\nTarde\nIntegral"}
+                  required
+                />
+              </Field>
+            ) : null}
+            <div className="flex gap-2 sm:col-span-2">
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {editingId ? "Salvar" : "Cadastrar"}
+              </Button>
               <Button type="button" variant="outline" onClick={resetForm}>
                 Cancelar
               </Button>
-            ) : null}
-          </div>
-        </form>
-      </section>
+            </div>
+          </form>
+        </Section>
+      ) : null}
 
       <section className="space-y-4">
-        <h2 className="font-medium">Lista por seção</h2>
+        <SectionLabel>Lista por seção</SectionLabel>
         <QueryState
           query={questionsQuery}
           isEmpty={(rows) => rows.length === 0}
           empty={
-            <p className="text-sm text-muted-foreground">
-              Nenhuma pergunta cadastrada.
-            </p>
+            <EmptyState
+              icon={ClipboardList}
+              title="Ainda não há perguntas"
+              description="Cadastre a primeira pergunta para que o estudo de caso tenha o que preencher."
+              action={
+                <Button
+                  onClick={() => {
+                    resetForm();
+                    setFormOpen(true);
+                  }}
+                >
+                  <Plus />
+                  Nova pergunta
+                </Button>
+              }
+            />
           }
         >
           {(rows) =>
@@ -318,104 +352,175 @@ function QuestionsPage() {
                 <h3 className="text-sm font-medium text-muted-foreground">
                   {group.section}
                 </h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ordem</TableHead>
-                      <TableHead>Enunciado</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Obrig.</TableHead>
-                      <TableHead>Situação</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {group.items.map((q, index) => (
-                      <TableRow key={q.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <span className="tabular-nums">{q.sortOrder}</span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={index === 0 || reorderMutation.isPending}
-                              onClick={() =>
-                                moveQuestion(group.items, q.id, "up")
-                              }
-                              aria-label="Mover para cima"
-                            >
-                              ↑
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={
-                                index === group.items.length - 1 ||
-                                reorderMutation.isPending
-                              }
-                              onClick={() =>
-                                moveQuestion(group.items, q.id, "down")
-                              }
-                              aria-label="Mover para baixo"
-                            >
-                              ↓
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell>{q.prompt}</TableCell>
-                        <TableCell>{TYPE_LABELS[q.type] ?? q.type}</TableCell>
-                        <TableCell>{q.required ? "Sim" : "Não"}</TableCell>
-                        <TableCell>
-                          <Badge variant={q.active ? "success" : "muted"}>
-                            {q.active ? "Ativa" : "Inativa"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setEditingId(q.id);
-                                setPrompt(q.prompt);
-                                setType(q.type);
-                                setSection(q.section ?? "");
-                                setRequired(q.required);
-                                setOptionsText(
-                                  Array.isArray(q.options)
-                                    ? q.options.join("\n")
-                                    : "",
-                                );
-                              }}
-                            >
-                              Editar
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={setActiveMutation.isPending}
-                              onClick={() =>
-                                setActiveMutation.mutate({
-                                  id: q.id,
-                                  active: !q.active,
-                                })
-                              }
-                            >
-                              {q.active ? "Desativar" : "Reativar"}
-                            </Button>
-                          </div>
-                        </TableCell>
+                {/* Tabela só a partir de lg */}
+                <div className="hidden lg:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Ordem</TableHead>
+                        <TableHead>Enunciado</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Obrig.</TableHead>
+                        <TableHead>Situação</TableHead>
+                        <TableHead>Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {group.items.map((q, index) => (
+                        <TableRow key={q.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <span className="tabular-nums">
+                                {q.sortOrder}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  index === 0 || reorderMutation.isPending
+                                }
+                                onClick={() =>
+                                  moveQuestion(group.items, q.id, "up")
+                                }
+                                aria-label="Mover para cima"
+                              >
+                                ↑
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  index === group.items.length - 1 ||
+                                  reorderMutation.isPending
+                                }
+                                onClick={() =>
+                                  moveQuestion(group.items, q.id, "down")
+                                }
+                                aria-label="Mover para baixo"
+                              >
+                                ↓
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell>{q.prompt}</TableCell>
+                          <TableCell>{TYPE_LABELS[q.type] ?? q.type}</TableCell>
+                          <TableCell>{q.required ? "Sim" : "Não"}</TableCell>
+                          <TableCell>
+                            <Badge variant={q.active ? "success" : "muted"}>
+                              {q.active ? "Ativa" : "Inativa"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => startEdit(q)}
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={setActiveMutation.isPending}
+                                onClick={() =>
+                                  setActiveMutation.mutate({
+                                    id: q.id,
+                                    active: !q.active,
+                                  })
+                                }
+                              >
+                                {q.active ? "Desativar" : "Reativar"}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile: cards — a tabela tem seis colunas e as ações
+                    ficavam fora da tela. */}
+                <ul className="space-y-3 lg:hidden">
+                  {group.items.map((q, index) => (
+                    <li
+                      key={q.id}
+                      className="space-y-3 rounded-lg border border-border bg-card p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="min-w-0 font-medium text-pretty">
+                          {q.prompt}
+                        </p>
+                        <Badge variant={q.active ? "success" : "muted"}>
+                          {q.active ? "Ativa" : "Inativa"}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {TYPE_LABELS[q.type] ?? q.type} ·{" "}
+                        {q.required ? "Obrigatória" : "Opcional"}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground tabular-nums">
+                          #{q.sortOrder}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          disabled={index === 0 || reorderMutation.isPending}
+                          onClick={() => moveQuestion(group.items, q.id, "up")}
+                          aria-label="Mover para cima"
+                        >
+                          <ArrowUp />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          disabled={
+                            index === group.items.length - 1 ||
+                            reorderMutation.isPending
+                          }
+                          onClick={() =>
+                            moveQuestion(group.items, q.id, "down")
+                          }
+                          aria-label="Mover para baixo"
+                        >
+                          <ArrowDown />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="ml-auto"
+                          onClick={() => startEdit(q)}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={setActiveMutation.isPending}
+                          onClick={() =>
+                            setActiveMutation.mutate({
+                              id: q.id,
+                              active: !q.active,
+                            })
+                          }
+                        >
+                          {q.active ? "Desativar" : "Reativar"}
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))
           }
         </QueryState>
       </section>
-    </div>
+    </Page>
   );
 }

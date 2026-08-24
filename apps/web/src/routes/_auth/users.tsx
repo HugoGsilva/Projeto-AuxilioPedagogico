@@ -13,9 +13,12 @@ import {
 } from "@auxilio-pedagogico/ui/components/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { Plus, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/empty-state";
+import { Page, PageHeader, Section, SectionLabel } from "@/components/page";
 import { QueryState } from "@/components/query-state";
 import { trpc } from "@/utils/trpc";
 
@@ -30,12 +33,7 @@ const ROLE_LABELS: Record<string, string> = {
   teacher: "Professora",
 };
 
-const ROLE_OPTIONS = [
-  "director",
-  "it_admin",
-  "pedagogue",
-  "teacher",
-] as const;
+const ROLE_OPTIONS = ["director", "it_admin", "pedagogue", "teacher"] as const;
 
 function UsersPage() {
   const queryClient = useQueryClient();
@@ -43,13 +41,14 @@ function UsersPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] =
-    useState<(typeof ROLE_OPTIONS)[number]>("teacher");
+  const [role, setRole] = useState<(typeof ROLE_OPTIONS)[number]>("teacher");
+  const [formOpen, setFormOpen] = useState(false);
 
   const createMutation = useMutation(
     trpc.user.create.mutationOptions({
       onSuccess: async () => {
         toast.success("Usuário criado");
+        setFormOpen(false);
         setName("");
         setEmail("");
         setPassword("");
@@ -81,119 +80,210 @@ function UsersPage() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Usuários</h1>
-        <p className="text-sm text-muted-foreground">
-          Crie, edite o perfil e desative contas. Não há exclusão física.
-        </p>
-      </div>
-
-      <section className="space-y-4 rounded-lg border border-border bg-card p-5">
-        <h2 className="font-medium">Novo usuário</h2>
-        <form
-          className="grid gap-4 sm:grid-cols-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            createMutation.mutate({ name, email, password, role });
-          }}
-        >
-          <Field>
-            <FieldLabel htmlFor="name" required>
-              Nome
-            </FieldLabel>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="email" required>
-              E-mail
-            </FieldLabel>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="password" required>
-              Senha inicial
-            </FieldLabel>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={8}
-              required
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="role">Perfil</FieldLabel>
-            <Select
-              id="role"
-              value={role}
-              onChange={(e) =>
-                setRole(e.target.value as (typeof ROLE_OPTIONS)[number])
-              }
-            >
-              {ROLE_OPTIONS.map((value) => (
-                <option key={value} value={value}>
-                  {ROLE_LABELS[value]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <div className="sm:col-span-2">
-            <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? "Criando…" : "Criar usuário"}
+    <Page>
+      <PageHeader
+        title="Usuários"
+        description="Crie, edite o perfil e desative contas. Não há exclusão física."
+        actions={
+          formOpen ? null : (
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus />
+              Novo usuário
             </Button>
-          </div>
-        </form>
-      </section>
+          )
+        }
+      />
+
+      {formOpen ? (
+        <Section title="Novo usuário">
+          <form
+            className="grid gap-4 sm:grid-cols-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              createMutation.mutate({ name, email, password, role });
+            }}
+          >
+            <Field>
+              <FieldLabel htmlFor="name" required>
+                Nome
+              </FieldLabel>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="email" required>
+                E-mail
+              </FieldLabel>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="password" required>
+                Senha inicial
+              </FieldLabel>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="role">Perfil</FieldLabel>
+              <Select
+                id="role"
+                value={role}
+                onChange={(e) =>
+                  setRole(e.target.value as (typeof ROLE_OPTIONS)[number])
+                }
+              >
+                {ROLE_OPTIONS.map((value) => (
+                  <option key={value} value={value}>
+                    {ROLE_LABELS[value]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <div className="flex gap-2 sm:col-span-2">
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? "Criando…" : "Criar usuário"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setFormOpen(false)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        </Section>
+      ) : null}
 
       <section className="space-y-3">
-        <h2 className="font-medium">Lista</h2>
+        <SectionLabel>Lista</SectionLabel>
         <QueryState
           query={usersQuery}
           isEmpty={(rows) => rows.length === 0}
           empty={
-            <p className="text-sm text-muted-foreground">
-              Nenhum usuário cadastrado.
-            </p>
+            <EmptyState
+              icon={UsersRound}
+              title="Ainda não há usuários"
+              description="Crie a primeira conta para que a equipe consiga entrar no sistema."
+              action={
+                <Button onClick={() => setFormOpen(true)}>
+                  <Plus />
+                  Novo usuário
+                </Button>
+              }
+            />
           }
         >
           {(users) => (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>E-mail</TableHead>
-                  <TableHead>Perfil</TableHead>
-                  <TableHead>Situação</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Tabela só a partir de lg */}
+              <div className="hidden lg:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>Perfil</TableHead>
+                      <TableHead>Situação</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((u) => (
+                      <TableRow key={u.id}>
+                        <TableCell>{u.name}</TableCell>
+                        <TableCell>{u.email}</TableCell>
+                        <TableCell>
+                          <Select
+                            className="w-auto"
+                            value={u.role}
+                            disabled={updateMutation.isPending}
+                            onChange={(e) =>
+                              updateMutation.mutate({
+                                id: u.id,
+                                role: e.target
+                                  .value as (typeof ROLE_OPTIONS)[number],
+                              })
+                            }
+                          >
+                            {ROLE_OPTIONS.map((value) => (
+                              <option key={value} value={value}>
+                                {ROLE_LABELS[value]}
+                              </option>
+                            ))}
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={u.active ? "success" : "muted"}>
+                            {u.active ? "Ativo" : "Desativado"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={setActiveMutation.isPending}
+                            onClick={() =>
+                              setActiveMutation.mutate({
+                                id: u.id,
+                                active: !u.active,
+                              })
+                            }
+                          >
+                            {u.active ? "Desativar" : "Reativar"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile: cards — na tabela as colunas de ação saíam da tela. */}
+              <ul className="space-y-3 lg:hidden">
                 {users.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell>{u.name}</TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>
+                  <li
+                    key={u.id}
+                    className="space-y-3 rounded-lg border border-border bg-card p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium">{u.name}</p>
+                        <p className="truncate text-sm text-muted-foreground">
+                          {u.email}
+                        </p>
+                      </div>
+                      <Badge variant={u.active ? "success" : "muted"}>
+                        {u.active ? "Ativo" : "Desativado"}
+                      </Badge>
+                    </div>
+                    <Field>
+                      <FieldLabel htmlFor={`role-${u.id}`}>Perfil</FieldLabel>
                       <Select
-                        className="w-auto"
+                        id={`role-${u.id}`}
                         value={u.role}
                         disabled={updateMutation.isPending}
                         onChange={(e) =>
                           updateMutation.mutate({
                             id: u.id,
-                            role: e.target.value as (typeof ROLE_OPTIONS)[number],
+                            role: e.target
+                              .value as (typeof ROLE_OPTIONS)[number],
                           })
                         }
                       >
@@ -203,34 +293,27 @@ function UsersPage() {
                           </option>
                         ))}
                       </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={u.active ? "success" : "muted"}>
-                        {u.active ? "Ativo" : "Desativado"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={setActiveMutation.isPending}
-                        onClick={() =>
-                          setActiveMutation.mutate({
-                            id: u.id,
-                            active: !u.active,
-                          })
-                        }
-                      >
-                        {u.active ? "Desativar" : "Reativar"}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                    </Field>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={setActiveMutation.isPending}
+                      onClick={() =>
+                        setActiveMutation.mutate({
+                          id: u.id,
+                          active: !u.active,
+                        })
+                      }
+                    >
+                      {u.active ? "Desativar" : "Reativar"}
+                    </Button>
+                  </li>
                 ))}
-              </TableBody>
-            </Table>
+              </ul>
+            </>
           )}
         </QueryState>
       </section>
-    </div>
+    </Page>
   );
 }

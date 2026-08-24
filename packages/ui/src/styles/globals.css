@@ -49,6 +49,9 @@
   --input: oklch(0.922 0 0);
   --ring: oklch(0.52 0.15 255);
   /* Rail escuro (mesmo tom em tema claro e escuro) + estado de pendência (âmbar). */
+  /* Canvas da área de conteúdo: opaco de propósito. Um tom translúcido aqui
+   * compõe sobre o rail escuro e suja o fundo no tema claro. */
+  --canvas: oklch(0.968 0.004 262);
   --rail: oklch(0.21 0.035 262);
   --rail-2: oklch(0.28 0.035 262);
   --rail-line: oklch(0.3 0.03 262);
@@ -90,6 +93,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.7 0.15 145);
   --success-foreground: oklch(0.205 0 0);
+  --canvas: oklch(0.178 0.012 262);
   /* Rail (--rail*) herda do :root — a faixa permanece escura no tema escuro. */
   --pending: oklch(0.78 0.12 70); /* âmbar mais claro p/ superfície escura */
   --pending-foreground: oklch(0.205 0 0);
@@ -134,6 +138,7 @@
   --color-success-foreground: var(--success-foreground);
   --color-pending: var(--pending);
   --color-pending-foreground: var(--pending-foreground);
+  --color-canvas: var(--canvas);
   --color-rail: var(--rail);
   --color-rail-2: var(--rail-2);
   --color-rail-line: var(--rail-line);
@@ -171,5 +176,29 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer base {
+  /**
+   * Seta do <select> nativo.
+   *
+   * Fica aqui, e não numa classe do preset, porque `background-image:
+   * url("data:image/svg+xml,…")` tem aspas e espaços que o parser de valor
+   * arbitrário do Tailwind não preserva — a declaração era descartada e o
+   * campo ficava sem seta nenhuma (o `appearance-none` já removeu a do SO).
+   *
+   * O traço é fixo por tema em vez de `currentColor`: `background-image` não
+   * herda a cor do texto. Os valores acompanham `--muted-foreground`.
+   */
+  [data-slot="select"] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23757575' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.625rem center;
+    background-size: 1rem 1rem;
+  }
+
+  .dark [data-slot="select"] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b4b4b4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 }
