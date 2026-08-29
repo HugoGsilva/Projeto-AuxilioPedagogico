@@ -37,6 +37,16 @@ function genericInviteError(): never {
   });
 }
 
+/** Violação de unique do Postgres (23505) — usada p/ mapear corrida em erro amigável. */
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code?: unknown }).code === "23505"
+  );
+}
+
 /** Cria um convite (revoga o pending anterior do mesmo e-mail) e devolve o link. */
 async function issueInvitation(
   actorId: string,
@@ -46,11 +56,12 @@ async function issueInvitation(
   const email = data.email.toLowerCase();
   const { raw, hash } = generateInviteToken();
 
-  const created = await withAuditedMutation({
-    db,
-    userId: actorId,
-    ip,
-    run: async (tx) => {
+  const runMutation = () =>
+    withAuditedMutation({
+      db,
+      userId: actorId,
+      ip,
+      run: async (tx) => {
       const [existingUser] = await tx
         .select({ id: user.id })
         .from(user)
@@ -108,9 +119,24 @@ async function issueInvitation(
         after: { email: row.email, role: row.role, status: row.status },
       });
 
-      return { result: row, audit };
-    },
-  });
+        return { result: row, audit };
+      },
+    });
+
+  let created;
+  try {
+    created = await runMutation();
+  } catch (err) {
+    // Corrida: duas criações concorrentes p/ o mesmo e-mail colidem no índice
+    // único parcial — devolve conflito amigável em vez de 500 cru.
+    if (isUniqueViolation(err)) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Já existe um convite pendente para este e-mail",
+      });
+    }
+    throw err;
+  }
 
   return { invitation: created, inviteUrl: buildInviteUrl(env.CORS_ORIGIN, raw) };
 }
@@ -136,6 +162,8 @@ export const invitationRouter = router({
       const actor = actorFromSession(ctx.session.user);
       assertCan(actor.role, "manageUsers");
 
+      // Só regenera convite ainda pendente — um 'revoked'/'accepted' não pode
+      // ser ressuscitado por aqui (revogado é definitivo).
       const [existing] = await db
         .select({
           name: invitation.name,
@@ -143,7 +171,9 @@ export const invitationRouter = router({
           role: invitation.role,
         })
         .from(invitation)
-        .where(eq(invitation.id, input.id))
+        .where(
+          and(eq(invitation.id, input.id), eq(invitation.status, "pending")),
+        )
         .limit(1);
       if (!existing) {
         throw new TRPCError({
@@ -239,6 +269,19 @@ export const invitationRouter = router({
     .mutation(async ({ ctx, input }) => {
       const tokenHash = hashInviteToken(input.token);
       const newUserId = crypto.randomUUID();
+
+      // Pré-checagem barata ANTES de hashear: o aceite é público, então um
+      // anônimo não pode forçar scrypt (caro) com token qualquer (anti-DoS).
+      // A validação forte (uso único) é refeita atomicamente dentro da tx.
+      const [pre] = await db
+        .select({ status: invitation.status, expiresAt: invitation.expiresAt })
+        .from(invitation)
+        .where(eq(invitation.tokenHash, tokenHash))
+        .limit(1);
+      if (!pre || pre.status !== "pending" || pre.expiresAt < new Date()) {
+        genericInviteError();
+      }
+
       const passwordHash = await hashPassword(input.password);
 
       const result = await withAuditedMutation({
@@ -273,13 +316,11 @@ export const invitationRouter = router({
           if (clash) genericInviteError();
 
           // Fecha o convite de forma atômica (uso único, à prova de corrida).
+          // acceptedUserId fica p/ depois: a FK exige o user já existente
+          // (invitation_accepted_user_id_user_id_fk não é deferrable).
           const consumed = await tx
             .update(invitation)
-            .set({
-              status: "accepted",
-              acceptedAt: new Date(),
-              acceptedUserId: newUserId,
-            })
+            .set({ status: "accepted", acceptedAt: new Date() })
             .where(
               and(
                 eq(invitation.id, invite.id),
@@ -321,6 +362,12 @@ export const invitationRouter = router({
             createdAt: now,
             updatedAt: now,
           });
+
+          // Vincula o convite ao usuário recém-criado (FK agora satisfeita).
+          await tx
+            .update(invitation)
+            .set({ acceptedUserId: newUserId })
+            .where(eq(invitation.id, invite.id));
 
           return {
             result: { email: createdUser.email },

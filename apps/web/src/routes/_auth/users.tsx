@@ -83,6 +83,9 @@ function UsersPage() {
     trpc.invitation.revoke.mutationOptions({
       onSuccess: async () => {
         toast.success("Convite cancelado");
+        // O link recém-exibido pode ser o que acabou de ser revogado — some com
+        // ele p/ não copiarem um convite morto.
+        setGeneratedLink(null);
         await refreshInvites();
       },
       onError: (error) => toast.error(error.message),
@@ -230,7 +233,14 @@ function UsersPage() {
         </Section>
       ) : null}
 
-      {(invitationsQuery.data ?? []).length > 0 ? (
+      {invitationsQuery.isError ? (
+        <section className="space-y-3">
+          <SectionLabel>Convites pendentes</SectionLabel>
+          <p className="text-sm text-destructive">
+            Não foi possível carregar os convites pendentes. Recarregue a página.
+          </p>
+        </section>
+      ) : (invitationsQuery.data ?? []).length > 0 ? (
         <section className="space-y-3">
           <SectionLabel>Convites pendentes</SectionLabel>
           <ul className="space-y-3">

@@ -74,6 +74,10 @@ function InvitePage() {
     ...trpc.invitation.preview.queryOptions({ token }),
     enabled: token.length > 0,
     retry: false,
+    // Um convite válido não pode "sumir" por um refetch transitório ao voltar
+    // o foco (ex.: abrir o gerenciador de senhas): não revalida em background.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 
   const [name, setName] = useState("");
@@ -109,7 +113,10 @@ function InvitePage() {
     }),
   );
 
-  if (token.length === 0 || previewQuery.isError) return <InviteUnavailable />;
+  // Só o erro de carga inicial (sem dados) troca p/ o cartão genérico — um
+  // eventual erro de refetch não descarta um convite já carregado e válido.
+  if (token.length === 0 || previewQuery.isLoadingError)
+    return <InviteUnavailable />;
   if (previewQuery.isPending) {
     return (
       <Shell>
