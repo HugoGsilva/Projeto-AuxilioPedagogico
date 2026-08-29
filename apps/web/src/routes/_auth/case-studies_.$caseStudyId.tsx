@@ -25,7 +25,7 @@ import { useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
-export const Route = createFileRoute("/_auth/case-studies/$caseStudyId")({
+export const Route = createFileRoute("/_auth/case-studies_/$caseStudyId")({
   component: CaseStudyFormPage,
 });
 

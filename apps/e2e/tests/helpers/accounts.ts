@@ -48,16 +48,23 @@ export const SEED_STUDENTS = {
 
 /** Itens de navegação esperados por papel (app-shell NAV_GROUPS × matriz ADR-0002). */
 export const EXPECTED_NAV: Record<RoleKey, string[]> = {
-  director: ["Painel", "Alunos", "Atribuições", "Perguntas", "Usuários"],
+  director: [
+    "Painel",
+    "Alunos",
+    "Estudos de caso",
+    "Atribuições",
+    "Perguntas",
+    "Usuários",
+  ],
   it_admin: ["Painel", "Perguntas", "Usuários"],
-  pedagogue: ["Painel", "Alunos", "Atribuições", "Perguntas"],
-  teacher: ["Painel", "Alunos"],
+  pedagogue: ["Painel", "Alunos", "Estudos de caso", "Atribuições", "Perguntas"],
+  teacher: ["Painel", "Alunos", "Estudos de caso"],
 };
 
 /** Itens de navegação que NÃO devem aparecer para o papel. */
 export const FORBIDDEN_NAV: Record<RoleKey, string[]> = {
   director: [],
-  it_admin: ["Alunos", "Atribuições"],
+  it_admin: ["Alunos", "Estudos de caso", "Atribuições"],
   pedagogue: ["Usuários"],
   teacher: ["Atribuições", "Perguntas", "Usuários"],
 };

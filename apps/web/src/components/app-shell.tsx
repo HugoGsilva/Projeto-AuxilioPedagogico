@@ -7,6 +7,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import {
   ClipboardList,
+  FileText,
   GraduationCap,
   LayoutDashboard,
   type LucideIcon,
@@ -42,6 +43,12 @@ const NAV_GROUPS: readonly NavGroup[] = [
         to: "/students",
         label: "Alunos",
         icon: GraduationCap,
+        permission: "viewCaseStudy",
+      },
+      {
+        to: "/case-studies",
+        label: "Estudos de caso",
+        icon: FileText,
         permission: "viewCaseStudy",
       },
     ],
