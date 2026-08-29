@@ -40,7 +40,9 @@ test.describe("Convites de usuário (E2E_WRITE=1)", () => {
     await page.getByRole("button", { name: "Convidar" }).first().click();
     await page.getByLabel("Nome").fill(data.name);
     await page.getByLabel("E-mail").fill(data.email);
-    if (data.role) await page.getByLabel("Perfil").selectOption(data.role);
+    // #role é o select do formulário de convite; os selects de papel das contas
+    // (cards mobile no DOM) também têm rótulo "Perfil", então getByLabel é ambíguo.
+    if (data.role) await page.locator("#role").selectOption(data.role);
     await page.getByRole("button", { name: "Gerar convite" }).click();
 
     // O callout de link só aparece em sucesso.
@@ -73,7 +75,10 @@ test.describe("Convites de usuário (E2E_WRITE=1)", () => {
     const guestPage = await guestCtx.newPage();
     await guestPage.goto(path);
     await expect(guestPage.getByText("Você foi convidada como")).toBeVisible();
-    await expect(guestPage.getByText("Professora")).toBeVisible();
+    // exact: o e-mail do convidado também contém o texto do papel como substring.
+    await expect(
+      guestPage.getByText("Professora", { exact: true }),
+    ).toBeVisible();
     await expect(guestPage.getByText(email)).toBeVisible();
 
     // O nome vem semeado; define a senha e conclui.
@@ -100,10 +105,14 @@ test.describe("Convites de usuário (E2E_WRITE=1)", () => {
     await reuseCtx.close();
 
     // Limpeza best-effort: desativa a conta criada para não acumular no ambiente.
+    // hasText (substring literal) evita metacaracteres do e-mail (+/.), e os
+    // timeouts curtos garantem que a limpeza nunca trave o teste.
     try {
       await dirPage.goto("/users");
-      const row = dirPage.getByRole("row", { name: new RegExp(email) });
-      await row.getByRole("button", { name: "Desativar" }).click();
+      const row = dirPage.getByRole("row").filter({ hasText: email });
+      await row
+        .getByRole("button", { name: "Desativar" })
+        .click({ timeout: 8_000 });
       await expect(row.getByText("Desativado")).toBeVisible({ timeout: 5_000 });
     } catch {
       // Não falha o teste se a limpeza não completar.
