@@ -26,16 +26,12 @@ import {
 import { QueryState } from "@/components/query-state";
 import { Can } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
+import { formatDateTime } from "@/lib/format";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_auth/students_/$studentId")({
   component: StudentCaseStudiesPage,
 });
-
-function formatDateTime(value: Date | string) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  return date.toLocaleString("pt-BR");
-}
 
 function StudentCaseStudiesPage() {
   const { studentId } = Route.useParams();

@@ -1,4 +1,5 @@
 import { db } from "@auxilio-pedagogico/db";
+import { user } from "@auxilio-pedagogico/db/schema/auth";
 import {
   answer,
   caseStudy,
@@ -12,6 +13,7 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { auditedProcedure, type DbTransaction } from "../audit";
 import {
   ROLES,
+  assertCan,
   assertCanViewOrEditCaseStudy,
   type Actor,
   type Role,
@@ -126,6 +128,36 @@ function badRequest(message: string): never {
 }
 
 export const caseStudyRouter = router({
+  list: protectedProcedure.query(async ({ ctx }) => {
+    const actor = actorFromSession(ctx.session.user);
+    // it_admin não enxerga estudos de caso (ADR-0002).
+    assertCan(actor.role, "viewCaseStudy");
+
+    const scopedToAssigned = actor.role === "teacher";
+    const assigned = scopedToAssigned
+      ? await assignedIdsForTeacher(actor.id)
+      : [];
+    if (scopedToAssigned && assigned.length === 0) return [];
+
+    return db
+      .select({
+        id: caseStudy.id,
+        studentId: caseStudy.studentId,
+        studentName: student.name,
+        className: student.className,
+        createdByName: user.name,
+        createdAt: caseStudy.createdAt,
+        updatedAt: caseStudy.updatedAt,
+      })
+      .from(caseStudy)
+      .innerJoin(student, eq(caseStudy.studentId, student.id))
+      .innerJoin(user, eq(caseStudy.createdById, user.id))
+      .where(
+        scopedToAssigned ? inArray(caseStudy.studentId, assigned) : undefined,
+      )
+      .orderBy(desc(caseStudy.updatedAt));
+  }),
+
   listByStudent: protectedProcedure
     .input(caseStudyListByStudentSchema)
     .query(async ({ ctx, input }) => {

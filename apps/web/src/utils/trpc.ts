@@ -8,6 +8,17 @@ import { toast } from "sonner";
 import { getServerUrl } from "@/lib/server-url";
 
 export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      /* Erros de permissão/sessão são determinísticos — re-tentar só atrasa
+       * o feedback de "Permissão negada" na tela. */
+      retry: (failureCount, error) => {
+        const code = (error as { data?: { code?: string } | null }).data?.code;
+        if (code === "FORBIDDEN" || code === "UNAUTHORIZED") return false;
+        return failureCount < 3;
+      },
+    },
+  },
   queryCache: new QueryCache({
     onError: (error, query) => {
       toast.error(error.message, {
