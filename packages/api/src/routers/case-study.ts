@@ -12,11 +12,9 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 
 import { auditedProcedure, type DbTransaction } from "../audit";
 import {
-  ROLES,
+  actorFromSession,
   assertCan,
   assertCanViewOrEditCaseStudy,
-  type Actor,
-  type Role,
 } from "../policy";
 import { protectedProcedure, router } from "../trpc";
 import {
@@ -33,20 +31,6 @@ import {
   type QuestionSnapshotSource,
 } from "./case-study-schemas";
 import type { QuestionType } from "./question-schemas";
-
-function actorFromSession(sessionUser: {
-  id: string;
-  role?: string | null;
-}): Actor {
-  const role = sessionUser.role;
-  if (!role || !ROLES.includes(role as Role)) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Perfil de usuário inválido",
-    });
-  }
-  return { id: sessionUser.id, role: role as Role };
-}
 
 async function assignedIdsForTeacher(teacherId: string): Promise<string[]> {
   const rows = await db

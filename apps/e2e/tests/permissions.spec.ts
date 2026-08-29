@@ -93,6 +93,9 @@ test.describe("Professora vê exatamente os alunos atribuídos (ADR-0002)", () =
     await expect(
       dirPage.getByRole("heading", { name: "Atribuições", level: 1 }),
     ).toBeVisible();
+    // Espera as linhas renderizarem (seed garante ≥1 atribuição); sem isso o
+    // allInnerTexts lê a tabela vazia e o teste flake.
+    await expect(dirPage.locator("table tbody tr").first()).toBeVisible();
     const assignmentRows = await dirPage
       .locator("table tbody tr")
       .allInnerTexts();
@@ -113,6 +116,9 @@ test.describe("Professora vê exatamente os alunos atribuídos (ADR-0002)", () =
     ).toBeVisible();
     await expect(
       teacherPage.getByText("Mostrando apenas alunos atribuídos a você."),
+    ).toBeVisible();
+    await expect(
+      teacherPage.locator("table tbody tr").first(),
     ).toBeVisible();
     const teacherSees = (await visibleStudentNames(teacherPage)).sort();
     await teacherCtx.close();
