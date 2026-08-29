@@ -1,6 +1,7 @@
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { auditLogRouter } from "./audit-log";
 import { caseStudyRouter } from "./case-study";
+import { invitationRouter } from "./invitation";
 import { pdfSettingsRouter } from "./pdf-settings";
 import { questionRouter } from "./question";
 import { studentRouter } from "./student";
@@ -18,6 +19,7 @@ export const appRouter = router({
     };
   }),
   user: userRouter,
+  invitation: invitationRouter,
   student: studentRouter,
   studentAssignment: studentAssignmentRouter,
   question: questionRouter,

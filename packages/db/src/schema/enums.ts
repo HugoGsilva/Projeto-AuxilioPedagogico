@@ -11,6 +11,13 @@ export const userRoleEnum = pgEnum("user_role", [
 /** Student shift — glossario: manhã / tarde / integral */
 export const shiftEnum = pgEnum("shift", ["morning", "afternoon", "full_day"]);
 
+/** Convite de usuário (issue #67): ciclo de vida do link. */
+export const invitationStatusEnum = pgEnum("invitation_status", [
+  "pending",
+  "accepted",
+  "revoked",
+]);
+
 /** Configurable question answer types — glossario / spec 4.4 */
 export const questionTypeEnum = pgEnum("question_type", [
   "short_text",

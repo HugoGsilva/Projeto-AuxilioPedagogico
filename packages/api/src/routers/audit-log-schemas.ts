@@ -29,6 +29,9 @@ export const AUDIT_ACTIONS = [
   "freeReport.update",
   "pdfSettings.update",
   "pdfGeneration.create",
+  "invitation.create",
+  "invitation.accept",
+  "invitation.revoke",
 ] as const;
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;

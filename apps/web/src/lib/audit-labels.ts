@@ -22,6 +22,9 @@ export const ACTION_LABELS: Record<string, string> = {
   "freeReport.update": "Alteração do relatório livre",
   "pdfSettings.update": "Alteração da configuração do PDF",
   "pdfGeneration.create": "Geração de PDF",
+  "invitation.create": "Convite enviado",
+  "invitation.accept": "Convite aceito",
+  "invitation.revoke": "Convite cancelado",
 };
 
 export const ENTITY_LABELS: Record<string, string> = {
@@ -35,6 +38,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   pdfSettings: "Configuração do PDF",
   pdfGeneration: "Geração de PDF",
   session: "Sessão",
+  invitation: "Convite",
 };
 
 export function actionLabel(action: string): string {

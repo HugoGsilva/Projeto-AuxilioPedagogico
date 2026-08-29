@@ -1,5 +1,6 @@
 import { Badge } from "@auxilio-pedagogico/ui/components/badge";
 import { Button } from "@auxilio-pedagogico/ui/components/button";
+import { Callout } from "@auxilio-pedagogico/ui/components/callout";
 import { Field, FieldLabel } from "@auxilio-pedagogico/ui/components/field";
 import { Input } from "@auxilio-pedagogico/ui/components/input";
 import { Select } from "@auxilio-pedagogico/ui/components/select";
@@ -13,13 +14,15 @@ import {
 } from "@auxilio-pedagogico/ui/components/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, UsersRound } from "lucide-react";
+import { Copy, MailPlus, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/empty-state";
 import { Page, PageHeader, Section, SectionLabel } from "@/components/page";
 import { QueryState } from "@/components/query-state";
+import { useRole } from "@/lib/access";
+import { formatDateTime } from "@/lib/format";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_auth/users")({
@@ -37,23 +40,64 @@ const ROLE_OPTIONS = ["director", "it_admin", "pedagogue", "teacher"] as const;
 
 function UsersPage() {
   const queryClient = useQueryClient();
+  const { can } = useRole();
+  // Só a diretora convida e troca papéis (ADR-0002). O TI vê as contas e
+  // ativa/desativa, mas sem UI de convite nem edição de papel.
+  const canInvite = can("manageInvitations");
+  const canAssignRoles = can("assignRoles");
+
   const usersQuery = useQuery(trpc.user.list.queryOptions());
+  const invitationsQuery = useQuery({
+    ...trpc.invitation.list.queryOptions(),
+    // Não dispara a query (que o servidor negaria com 403) para quem não convida.
+    enabled: canInvite,
+  });
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [role, setRole] = useState<(typeof ROLE_OPTIONS)[number]>("teacher");
   const [formOpen, setFormOpen] = useState(false);
+  // O link só existe no momento da criação/regeneração (o banco guarda só o hash).
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+
+  async function refreshInvites() {
+    await queryClient.invalidateQueries(trpc.invitation.list.queryFilter());
+  }
 
   const createMutation = useMutation(
-    trpc.user.create.mutationOptions({
-      onSuccess: async () => {
-        toast.success("Usuário criado");
+    trpc.invitation.create.mutationOptions({
+      onSuccess: async ({ inviteUrl }) => {
+        toast.success("Convite criado");
+        setGeneratedLink(inviteUrl);
         setFormOpen(false);
         setName("");
         setEmail("");
-        setPassword("");
         setRole("teacher");
-        await queryClient.invalidateQueries(trpc.user.list.queryFilter());
+        await refreshInvites();
+      },
+      onError: (error) => toast.error(error.message),
+    }),
+  );
+
+  const regenerateMutation = useMutation(
+    trpc.invitation.regenerate.mutationOptions({
+      onSuccess: async ({ inviteUrl }) => {
+        toast.success("Novo link gerado");
+        setGeneratedLink(inviteUrl);
+        await refreshInvites();
+      },
+      onError: (error) => toast.error(error.message),
+    }),
+  );
+
+  const revokeMutation = useMutation(
+    trpc.invitation.revoke.mutationOptions({
+      onSuccess: async () => {
+        toast.success("Convite cancelado");
+        // O link recém-exibido pode ser o que acabou de ser revogado — some com
+        // ele p/ não copiarem um convite morto.
+        setGeneratedLink(null);
+        await refreshInvites();
       },
       onError: (error) => toast.error(error.message),
     }),
@@ -79,28 +123,69 @@ function UsersPage() {
     }),
   );
 
+  async function copyLink(url: string) {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copiado");
+    } catch {
+      toast.error("Não foi possível copiar — selecione o link manualmente.");
+    }
+  }
+
   return (
     <Page>
       <PageHeader
         title="Usuários"
-        description="Crie, edite o perfil e desative contas. Não há exclusão física."
+        description="Convide a equipe, edite perfis e desative contas. A pessoa define a própria senha ao aceitar o convite."
         actions={
-          formOpen ? null : (
+          canInvite && !formOpen ? (
             <Button onClick={() => setFormOpen(true)}>
-              <Plus />
-              Novo usuário
+              <MailPlus />
+              Convidar
             </Button>
-          )
+          ) : null
         }
       />
 
-      {formOpen ? (
-        <Section title="Novo usuário">
+      {generatedLink ? (
+        <Callout>
+          <div className="w-full space-y-2">
+            <p className="text-sm font-medium">
+              Convite criado — copie o link agora
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Envie este link para a pessoa. Por segurança ele não é exibido de
+              novo; se precisar, use “Regenerar link” na lista de pendentes.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input readOnly value={generatedLink} className="font-mono text-xs" />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => copyLink(generatedLink)}
+              >
+                <Copy />
+                Copiar link
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setGeneratedLink(null)}
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </Callout>
+      ) : null}
+
+      {canInvite && formOpen ? (
+        <Section title="Convidar pessoa">
           <form
             className="grid gap-4 sm:grid-cols-2"
             onSubmit={(e) => {
               e.preventDefault();
-              createMutation.mutate({ name, email, password, role });
+              createMutation.mutate({ name, email, role });
             }}
           >
             <Field>
@@ -111,6 +196,7 @@ function UsersPage() {
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                minLength={2}
                 required
               />
             </Field>
@@ -123,19 +209,6 @@ function UsersPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="password" required>
-                Senha inicial
-              </FieldLabel>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={8}
                 required
               />
             </Field>
@@ -157,7 +230,7 @@ function UsersPage() {
             </Field>
             <div className="flex gap-2 sm:col-span-2">
               <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Criando…" : "Criar usuário"}
+                {createMutation.isPending ? "Gerando…" : "Gerar convite"}
               </Button>
               <Button
                 type="button"
@@ -171,8 +244,58 @@ function UsersPage() {
         </Section>
       ) : null}
 
+      {invitationsQuery.isError ? (
+        <section className="space-y-3">
+          <SectionLabel>Convites pendentes</SectionLabel>
+          <p className="text-sm text-destructive">
+            Não foi possível carregar os convites pendentes. Recarregue a página.
+          </p>
+        </section>
+      ) : (invitationsQuery.data ?? []).length > 0 ? (
+        <section className="space-y-3">
+          <SectionLabel>Convites pendentes</SectionLabel>
+          <ul className="space-y-3">
+            {(invitationsQuery.data ?? []).map((inv) => (
+              <li
+                key={inv.id}
+                className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium">{inv.name}</p>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {inv.email} · {ROLE_LABELS[inv.role] ?? inv.role}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Expira em {formatDateTime(inv.expiresAt)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="pending">Pendente</Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={regenerateMutation.isPending}
+                    onClick={() => regenerateMutation.mutate({ id: inv.id })}
+                  >
+                    Regenerar link
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={revokeMutation.isPending}
+                    onClick={() => revokeMutation.mutate({ id: inv.id })}
+                  >
+                    Revogar
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="space-y-3">
-        <SectionLabel>Lista</SectionLabel>
+        <SectionLabel>Contas</SectionLabel>
         <QueryState
           query={usersQuery}
           isEmpty={(rows) => rows.length === 0}
@@ -180,12 +303,14 @@ function UsersPage() {
             <EmptyState
               icon={UsersRound}
               title="Ainda não há usuários"
-              description="Crie a primeira conta para que a equipe consiga entrar no sistema."
+              description="Convide a primeira pessoa para que a equipe consiga entrar no sistema."
               action={
-                <Button onClick={() => setFormOpen(true)}>
-                  <Plus />
-                  Novo usuário
-                </Button>
+                canInvite ? (
+                  <Button onClick={() => setFormOpen(true)}>
+                    <MailPlus />
+                    Convidar
+                  </Button>
+                ) : undefined
               }
             />
           }
@@ -213,7 +338,7 @@ function UsersPage() {
                           <Select
                             className="w-auto"
                             value={u.role}
-                            disabled={updateMutation.isPending}
+                            disabled={updateMutation.isPending || !canAssignRoles}
                             onChange={(e) =>
                               updateMutation.mutate({
                                 id: u.id,
@@ -278,7 +403,7 @@ function UsersPage() {
                       <Select
                         id={`role-${u.id}`}
                         value={u.role}
-                        disabled={updateMutation.isPending}
+                        disabled={updateMutation.isPending || !canAssignRoles}
                         onChange={(e) =>
                           updateMutation.mutate({
                             id: u.id,

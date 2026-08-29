@@ -16,6 +16,7 @@ export const AUDIT_ENTITY_TYPES = [
   "pdfSettings",
   "pdfGeneration",
   "session",
+  "invitation",
 ] as const;
 
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number] | (string & {});

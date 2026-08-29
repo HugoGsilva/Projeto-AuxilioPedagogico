@@ -14,6 +14,8 @@ export const ROLES: readonly Role[] = [
  */
 export const PERMISSIONS = [
   "manageUsers",
+  "manageInvitations",
+  "assignRoles",
   "manageStudents",
   "manageAssignments",
   "configureQuestions",
@@ -36,10 +38,15 @@ export type Permission = (typeof PERMISSIONS)[number];
  * - teacher: case-study/student only when assigned
  * - teacher: no PDF generation
  * - pedagogue: can configure questions; no user management; can generate PDF
+ * - only director invites people / assigns roles (manageInvitations, assignRoles):
+ *   it_admin manages accounts (activate/deactivate) but cannot mint a new account
+ *   nor elevate a role — else it_admin could bootstrap student-data access (ADR-0002).
  */
 export const ROLE_PERMISSIONS: Record<Role, Record<Permission, boolean>> = {
   director: {
     manageUsers: true,
+    manageInvitations: true,
+    assignRoles: true,
     manageStudents: true,
     manageAssignments: true,
     configureQuestions: true,
@@ -51,6 +58,8 @@ export const ROLE_PERMISSIONS: Record<Role, Record<Permission, boolean>> = {
   },
   it_admin: {
     manageUsers: true,
+    manageInvitations: false,
+    assignRoles: false,
     manageStudents: false,
     manageAssignments: false,
     configureQuestions: true,
@@ -62,6 +71,8 @@ export const ROLE_PERMISSIONS: Record<Role, Record<Permission, boolean>> = {
   },
   pedagogue: {
     manageUsers: false,
+    manageInvitations: false,
+    assignRoles: false,
     manageStudents: true,
     manageAssignments: true,
     configureQuestions: true,
@@ -73,6 +84,8 @@ export const ROLE_PERMISSIONS: Record<Role, Record<Permission, boolean>> = {
   },
   teacher: {
     manageUsers: false,
+    manageInvitations: false,
+    assignRoles: false,
     manageStudents: false,
     manageAssignments: false,
     configureQuestions: false,

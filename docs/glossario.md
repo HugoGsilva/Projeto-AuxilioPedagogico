@@ -24,3 +24,4 @@ O código é escrito em **inglês** ([ADR-0007](adr/0007-idioma-do-codigo.md)); 
 | Responsável (pelo aluno) | `guardian` | Pai/mãe/responsável legal. |
 | Turno | `shift` | Manhã/tarde/integral. |
 | Necessidades especiais | `special needs` | Contexto do domínio; evitar abreviações. |
+| Convite (de usuário) | `invitation` | Link de uso único que cria a conta no aceite (a pessoa define a senha). Rota pública `/convite`. |
