@@ -39,6 +39,7 @@ services:
       CORS_ORIGIN: https://extensao.hugogsilva.dev
       ALLOW_SEED: "true"
       SEED_PASSWORD: Dev@12345
+      GOTENBERG_URL: http://gotenberg:3000
     networks:
       - internal
       - network_swarm_public
@@ -64,6 +65,24 @@ services:
         - traefik.http.routers.auxilio-api.tls.certresolver=letsencryptresolver
         - traefik.http.routers.auxilio-api.service=auxilio-api
         - traefik.http.services.auxilio-api.loadbalancer.server.port=3000
+
+  # Conversor HTML→PDF (ADR-0005). Só na rede interna: sem Traefik, sem porta
+  # pública — apenas a API alcança o serviço.
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    command: ["gotenberg", "--api-timeout=30s"]
+    networks:
+      - internal
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+      resources:
+        limits:
+          cpus: "1"
+          memory: 768M
 
   web:
     image: hugogsilva/auxilio-pedagogico-web:latest

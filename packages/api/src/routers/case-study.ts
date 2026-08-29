@@ -3,14 +3,18 @@ import { user } from "@auxilio-pedagogico/db/schema/auth";
 import {
   answer,
   caseStudy,
+  pdfSettings,
   question,
   student,
   studentAssignment,
 } from "@auxilio-pedagogico/db/schema/domain";
+import { env } from "@auxilio-pedagogico/env/server";
 import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 
 import { auditedProcedure, type DbTransaction } from "../audit";
+import { convertHtmlToPdf } from "../pdf/gotenberg";
+import { renderCaseStudyHtml } from "../pdf/template";
 import {
   actorFromSession,
   assertCan,
@@ -605,5 +609,135 @@ export const caseStudyRouter = router({
           },
         };
       });
+    }),
+
+  generatePdf: auditedProcedure
+    .input(caseStudyIdInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const actor = actorFromSession(ctx.session.user);
+      // Direção e pedagoga geram; professora e TI não (ADR-0002). Primeiro
+      // gate: evita a query de atribuições para quem nunca poderá gerar.
+      assertCan(actor.role, "generatePdf");
+      const assigned =
+        actor.role === "teacher" ? await assignedIdsForTeacher(actor.id) : [];
+
+      const [existing] = await db
+        .select({ id: caseStudy.id, studentId: caseStudy.studentId })
+        .from(caseStudy)
+        .where(eq(caseStudy.id, input.id))
+        .limit(1);
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Estudo de caso não encontrado",
+        });
+      }
+
+      assertCanViewOrEditCaseStudy(actor, "viewCaseStudy", {
+        studentId: existing.studentId,
+        assignedStudentIds: assigned,
+      });
+
+      if (!env.GOTENBERG_URL) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Serviço de geração de PDF não configurado neste ambiente.",
+        });
+      }
+
+      // Leituras independentes em paralelo; só o nome do criador depende do detalhe.
+      const [detail, [studentRow], [settings]] = await Promise.all([
+        loadCaseStudyDetail(db, input.id),
+        db
+          .select({
+            birthDate: student.birthDate,
+            guardian: student.guardian,
+            shift: student.shift,
+          })
+          .from(student)
+          .where(eq(student.id, existing.studentId))
+          .limit(1),
+        db
+          .select({
+            schoolName: pdfSettings.schoolName,
+            institutionalInfo: pdfSettings.institutionalInfo,
+            headerText: pdfSettings.headerText,
+            footerText: pdfSettings.footerText,
+          })
+          .from(pdfSettings)
+          .orderBy(asc(pdfSettings.createdAt))
+          .limit(1),
+      ]);
+      const [createdBy] = await db
+        .select({ name: user.name })
+        .from(user)
+        .where(eq(user.id, detail.createdById))
+        .limit(1);
+
+      const generatedAt = new Date();
+      const html = renderCaseStudyHtml({
+        settings: settings ?? null,
+        student: {
+          name: detail.studentName,
+          className: detail.className,
+          birthDate: studentRow?.birthDate ?? null,
+          guardian: studentRow?.guardian ?? null,
+          shift: studentRow?.shift ?? null,
+        },
+        createdByName: createdBy?.name ?? null,
+        generatedByName: ctx.session.user.name ?? "—",
+        generatedAt,
+        answers: detail.answers.map((row) => ({
+          questionSnapshot: row.questionSnapshot,
+          value: row.value,
+        })),
+        freeReport: detail.freeReport,
+      });
+
+      /* Conversão FORA da transação: HTTP externo não pode segurar lock no
+       * Postgres. Falha aqui não é auditada — geração que não aconteceu. */
+      let bytes: Uint8Array;
+      try {
+        bytes = await convertHtmlToPdf(env.GOTENBERG_URL, html);
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Não foi possível gerar o PDF no momento.",
+        });
+      }
+
+      const slug = detail.studentName
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      const fileName = `estudo-de-caso-${slug || "aluno"}.pdf`;
+
+      // A transação existe só para a linha de auditoria (ADR-0004).
+      return ctx.auditMutation(async () => ({
+        result: {
+          fileName,
+          mimeType: "application/pdf" as const,
+          base64: Buffer.from(bytes).toString("base64"),
+        },
+        audit: {
+          action: "pdfGeneration.create",
+          entityType: "pdfGeneration",
+          entityId: input.id,
+          after: {
+            caseStudyId: input.id,
+            studentId: existing.studentId,
+            studentName: detail.studentName,
+            fileName,
+            byteLength: bytes.length,
+            generatedAt: generatedAt.toISOString(),
+          },
+        },
+      }));
     }),
 });
