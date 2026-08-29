@@ -143,6 +143,32 @@ test.describe("Estudo de caso — preenchimento (E2E_WRITE=1)", () => {
       studentRow().getByText("Completo", { exact: true }),
     ).toBeVisible();
   });
+
+  test("gera o PDF do estudo completo pela lista de alunos", async ({
+    page,
+  }) => {
+    // Auto-suficiente: cria e completa o próprio estudo (não depende de ordem).
+    await openStudentCaseStudies(page, SEED_STUDENTS.assigned);
+    await createCaseStudy(page);
+    await expect(page.getByLabel(REQUIRED_RE)).toBeVisible();
+    await fillRequiredFields(page);
+    await page.getByRole("button", { name: "Salvar respostas" }).click();
+    await expect(page.getByText("Respostas salvas")).toBeVisible();
+
+    await page.goto("/students");
+    const row = page.getByRole("row", {
+      name: new RegExp(SEED_STUDENTS.assigned),
+    });
+    await expect(row.getByText("Completo", { exact: true })).toBeVisible();
+
+    const downloadPromise = page.waitForEvent("download");
+    await row
+      .getByRole("button", { name: "Gerar PDF do estudo de caso" })
+      .click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^estudo-de-caso-.+\.pdf$/);
+    await expect(page.getByText("PDF gerado")).toBeVisible();
+  });
 });
 
 test.describe("Snapshot do enunciado — ADR-0003 (E2E_SNAPSHOT=1)", () => {

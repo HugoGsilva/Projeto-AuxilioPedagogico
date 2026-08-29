@@ -647,33 +647,56 @@ export const caseStudyRouter = router({
       }
 
       // Leituras independentes em paralelo; só o nome do criador depende do detalhe.
-      const [detail, [studentRow], [settings]] = await Promise.all([
-        loadCaseStudyDetail(db, input.id),
-        db
-          .select({
-            birthDate: student.birthDate,
-            guardian: student.guardian,
-            shift: student.shift,
-          })
-          .from(student)
-          .where(eq(student.id, existing.studentId))
-          .limit(1),
-        db
-          .select({
-            schoolName: pdfSettings.schoolName,
-            institutionalInfo: pdfSettings.institutionalInfo,
-            headerText: pdfSettings.headerText,
-            footerText: pdfSettings.footerText,
-          })
-          .from(pdfSettings)
-          .orderBy(asc(pdfSettings.createdAt))
-          .limit(1),
-      ]);
+      const [detail, [studentRow], [settings], requiredActive] =
+        await Promise.all([
+          loadCaseStudyDetail(db, input.id),
+          db
+            .select({
+              birthDate: student.birthDate,
+              guardian: student.guardian,
+              shift: student.shift,
+            })
+            .from(student)
+            .where(eq(student.id, existing.studentId))
+            .limit(1),
+          db
+            .select({
+              schoolName: pdfSettings.schoolName,
+              institutionalInfo: pdfSettings.institutionalInfo,
+              headerText: pdfSettings.headerText,
+              footerText: pdfSettings.footerText,
+            })
+            .from(pdfSettings)
+            .orderBy(asc(pdfSettings.createdAt))
+            .limit(1),
+          db
+            .select({ id: question.id })
+            .from(question)
+            .where(and(eq(question.active, true), eq(question.required, true))),
+        ]);
       const [createdBy] = await db
         .select({ name: user.name })
         .from(user)
         .where(eq(user.id, detail.createdById))
         .limit(1);
+
+      /* Regra da issue #49 no servidor, não só no botão: PDF só de estudo
+       * completo (mesma régua do saveAnswers/completionByStudent). */
+      const valuesByQuestionId = new Map(
+        detail.answers.map((row) => [row.questionId, row.value]),
+      );
+      if (
+        hasUnfilledRequiredAnswers(
+          requiredActive.map((row) => row.id),
+          valuesByQuestionId,
+        )
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "O estudo de caso precisa estar completo para gerar o PDF.",
+        });
+      }
 
       const generatedAt = new Date();
       const html = renderCaseStudyHtml({
