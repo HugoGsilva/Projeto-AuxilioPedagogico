@@ -21,7 +21,7 @@ Substituir `user.create` por um fluxo de **convite com link de uso único**:
 
 A criação de `user`+`account` direto no banco (contornando o `signUp` do Better Auth, desligado por `disableSignUp`) é intencional e já era feita pelo antigo `user.create`; a novidade é que ocorre num endpoint público protegido pelo token de uso único, e a senha é definida pelo próprio dono.
 
-**Restrição de papel por quem convida:** ver regra vigente na policy (`manageUsers` + limite de papel-alvo). O invariante do [ADR-0002](0002-permissoes-roles-fixas.md) — `it_admin` não acessa dados de aluno — deve ser preservado: o convite não pode ser um caminho para conceder a si mesmo um papel com acesso a dados de aluno.
+**Quem convida:** apenas a `director`. Convidar e trocar papéis são permissões próprias (`manageInvitations`, `assignRoles`), ambas exclusivas da diretora na matriz da policy. O `it_admin` mantém `manageUsers` (listar contas, ativar/desativar) mas **não** cria convites nem altera papéis — caso contrário poderia se auto-conceder um papel com acesso a dados de aluno, violando o invariante do [ADR-0002](0002-permissoes-roles-fixas.md) (`it_admin` não acessa dados de aluno). A verificação é no servidor (routers `invitation.*` e `user.update`); a UI apenas esconde os controles.
 
 ## Consequências
 

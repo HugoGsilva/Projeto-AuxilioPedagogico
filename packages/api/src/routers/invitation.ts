@@ -152,7 +152,7 @@ export const invitationRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const actor = actorFromSession(ctx.session.user);
-      assertCan(actor.role, "manageUsers");
+      assertCan(actor.role, "manageInvitations");
       return issueInvitation(actor.id, ctx.ip, input);
     }),
 
@@ -160,7 +160,7 @@ export const invitationRouter = router({
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const actor = actorFromSession(ctx.session.user);
-      assertCan(actor.role, "manageUsers");
+      assertCan(actor.role, "manageInvitations");
 
       // Só regenera convite ainda pendente — um 'revoked'/'accepted' não pode
       // ser ressuscitado por aqui (revogado é definitivo).
@@ -186,7 +186,7 @@ export const invitationRouter = router({
 
   list: protectedProcedure.query(async ({ ctx }) => {
     const actor = actorFromSession(ctx.session.user);
-    assertCan(actor.role, "manageUsers");
+    assertCan(actor.role, "manageInvitations");
     return db
       .select(invitationSelect)
       .from(invitation)
@@ -198,7 +198,7 @@ export const invitationRouter = router({
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const actor = actorFromSession(ctx.session.user);
-      assertCan(actor.role, "manageUsers");
+      assertCan(actor.role, "manageInvitations");
 
       return withAuditedMutation({
         db,

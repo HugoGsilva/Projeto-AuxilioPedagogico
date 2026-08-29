@@ -59,6 +59,12 @@ export const userRouter = router({
     .mutation(async ({ ctx, input }) => {
       assertCan(actorRole(ctx.session.user), "manageUsers");
 
+      // Elevar/alterar papel é exclusivo da diretora (ADR-0002): o it_admin
+      // gerencia contas mas não pode conceder papéis com acesso a dados de aluno.
+      if (input.role) {
+        assertCan(actorRole(ctx.session.user), "assignRoles");
+      }
+
       if (input.id === ctx.session.user.id && input.role) {
         throw new TRPCError({
           code: "BAD_REQUEST",

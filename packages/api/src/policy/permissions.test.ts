@@ -19,6 +19,8 @@ import {
 const EXPECTED: Record<Role, Record<Permission, boolean>> = {
   director: {
     manageUsers: true,
+    manageInvitations: true,
+    assignRoles: true,
     manageStudents: true,
     manageAssignments: true,
     configureQuestions: true,
@@ -30,6 +32,8 @@ const EXPECTED: Record<Role, Record<Permission, boolean>> = {
   },
   it_admin: {
     manageUsers: true,
+    manageInvitations: false,
+    assignRoles: false,
     manageStudents: false,
     manageAssignments: false,
     configureQuestions: true,
@@ -41,6 +45,8 @@ const EXPECTED: Record<Role, Record<Permission, boolean>> = {
   },
   pedagogue: {
     manageUsers: false,
+    manageInvitations: false,
+    assignRoles: false,
     manageStudents: true,
     manageAssignments: true,
     configureQuestions: true,
@@ -52,6 +58,8 @@ const EXPECTED: Record<Role, Record<Permission, boolean>> = {
   },
   teacher: {
     manageUsers: false,
+    manageInvitations: false,
+    assignRoles: false,
     manageStudents: false,
     manageAssignments: false,
     configureQuestions: false,
@@ -72,6 +80,18 @@ describe("ROLE_PERMISSIONS matrix (ADR-0002)", () => {
         expect(can(role, permission)).toBe(EXPECTED[role][permission]);
       }
     }
+  });
+
+  test("only director invites people and assigns roles (ADR-0002 segregation)", () => {
+    for (const role of ROLES) {
+      const isDirector = role === "director";
+      expect(can(role, "manageInvitations")).toBe(isDirector);
+      expect(can(role, "assignRoles")).toBe(isDirector);
+    }
+    // it_admin gerencia contas (ativar/desativar) mas não cria nem eleva papéis.
+    expect(can("it_admin", "manageUsers")).toBe(true);
+    expect(can("it_admin", "manageInvitations")).toBe(false);
+    expect(can("it_admin", "assignRoles")).toBe(false);
   });
 
   test("it_admin never gets student-data capabilities", () => {

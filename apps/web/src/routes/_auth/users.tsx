@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 import { Page, PageHeader, Section, SectionLabel } from "@/components/page";
 import { QueryState } from "@/components/query-state";
+import { useRole } from "@/lib/access";
 import { formatDateTime } from "@/lib/format";
 import { trpc } from "@/utils/trpc";
 
@@ -39,8 +40,18 @@ const ROLE_OPTIONS = ["director", "it_admin", "pedagogue", "teacher"] as const;
 
 function UsersPage() {
   const queryClient = useQueryClient();
+  const { can } = useRole();
+  // Só a diretora convida e troca papéis (ADR-0002). O TI vê as contas e
+  // ativa/desativa, mas sem UI de convite nem edição de papel.
+  const canInvite = can("manageInvitations");
+  const canAssignRoles = can("assignRoles");
+
   const usersQuery = useQuery(trpc.user.list.queryOptions());
-  const invitationsQuery = useQuery(trpc.invitation.list.queryOptions());
+  const invitationsQuery = useQuery({
+    ...trpc.invitation.list.queryOptions(),
+    // Não dispara a query (que o servidor negaria com 403) para quem não convida.
+    enabled: canInvite,
+  });
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -127,12 +138,12 @@ function UsersPage() {
         title="Usuários"
         description="Convide a equipe, edite perfis e desative contas. A pessoa define a própria senha ao aceitar o convite."
         actions={
-          formOpen ? null : (
+          canInvite && !formOpen ? (
             <Button onClick={() => setFormOpen(true)}>
               <MailPlus />
               Convidar
             </Button>
-          )
+          ) : null
         }
       />
 
@@ -168,7 +179,7 @@ function UsersPage() {
         </Callout>
       ) : null}
 
-      {formOpen ? (
+      {canInvite && formOpen ? (
         <Section title="Convidar pessoa">
           <form
             className="grid gap-4 sm:grid-cols-2"
@@ -294,10 +305,12 @@ function UsersPage() {
               title="Ainda não há usuários"
               description="Convide a primeira pessoa para que a equipe consiga entrar no sistema."
               action={
-                <Button onClick={() => setFormOpen(true)}>
-                  <MailPlus />
-                  Convidar
-                </Button>
+                canInvite ? (
+                  <Button onClick={() => setFormOpen(true)}>
+                    <MailPlus />
+                    Convidar
+                  </Button>
+                ) : undefined
               }
             />
           }
@@ -325,7 +338,7 @@ function UsersPage() {
                           <Select
                             className="w-auto"
                             value={u.role}
-                            disabled={updateMutation.isPending}
+                            disabled={updateMutation.isPending || !canAssignRoles}
                             onChange={(e) =>
                               updateMutation.mutate({
                                 id: u.id,
@@ -390,7 +403,7 @@ function UsersPage() {
                       <Select
                         id={`role-${u.id}`}
                         value={u.role}
-                        disabled={updateMutation.isPending}
+                        disabled={updateMutation.isPending || !canAssignRoles}
                         onChange={(e) =>
                           updateMutation.mutate({
                             id: u.id,

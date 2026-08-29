@@ -166,24 +166,20 @@ test.describe("Convites de usuário (E2E_WRITE=1)", () => {
     await dirCtx.close();
   });
 
-  test("TI também consegue convidar (manageUsers)", async ({ browser }) => {
-    const email = uniqueEmail("convite-ti");
-
+  test("TI não convida — só a diretora (ADR-0002)", async ({ browser }) => {
     const tiCtx = await browser.newContext({
       storageState: storageStatePath("it_admin"),
     });
     const tiPage = await tiCtx.newPage();
-    const inviteUrl = await createInvite(tiPage, {
-      name: "Convidada pela TI",
-      email,
-      role: "pedagogue",
-    });
-    expect(inviteUrl).toContain("/convite?token=");
-
-    // Limpa o pendente para não deixar resíduo.
-    await tiPage.getByRole("button", { name: "Fechar" }).click();
-    const pendingRow = tiPage.getByRole("listitem").filter({ hasText: email });
-    await pendingRow.getByRole("button", { name: "Revogar" }).click();
+    await tiPage.goto("/users");
+    await expect(
+      tiPage.getByRole("heading", { name: "Usuários", level: 1 }),
+    ).toBeVisible();
+    // O TI vê e gerencia contas (a lista renderiza), mas não tem ação de
+    // convite — só a diretora convida.
+    await expect(
+      tiPage.getByRole("button", { name: "Convidar" }),
+    ).toHaveCount(0);
     await tiCtx.close();
   });
 });
