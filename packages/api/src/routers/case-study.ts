@@ -22,7 +22,9 @@ import {
   caseStudyIdInputSchema,
   caseStudyListByStudentSchema,
   caseStudySaveAnswersSchema,
+  caseStudySaveFreeReportSchema,
   hasUnfilledRequiredAnswers,
+  isBlankAnswerValue,
   rejectsInactiveQuestionWithoutAnswer,
   resolveAnswerQuestionSnapshot,
   serializeAnswerValue,
@@ -75,6 +77,7 @@ async function loadCaseStudyDetail(client: QueryClient, id: string) {
   const [row] = await client
     .select({
       ...caseStudySelect,
+      freeReport: caseStudy.freeReport,
       studentName: student.name,
       className: student.className,
     })
@@ -431,6 +434,65 @@ export const caseStudyRouter = router({
             entityId: input.caseStudyId,
             before: { answers: beforeAnswers },
             after: { answers: afterAnswers },
+          },
+        };
+      });
+    }),
+
+  saveFreeReport: auditedProcedure
+    .input(caseStudySaveFreeReportSchema)
+    .mutation(async ({ ctx, input }) => {
+      const actor = actorFromSession(ctx.session.user);
+      const assigned =
+        actor.role === "teacher" ? await assignedIdsForTeacher(actor.id) : [];
+
+      return ctx.auditMutation(async (tx) => {
+        const [existing] = await tx
+          .select({
+            studentId: caseStudy.studentId,
+            freeReport: caseStudy.freeReport,
+          })
+          .from(caseStudy)
+          .where(eq(caseStudy.id, input.caseStudyId))
+          .limit(1);
+
+        if (!existing) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Estudo de caso não encontrado",
+          });
+        }
+
+        assertCanViewOrEditCaseStudy(actor, "editCaseStudy", {
+          studentId: existing.studentId,
+          assignedStudentIds: assigned,
+        });
+
+        const freeReport = isBlankAnswerValue(input.freeReport)
+          ? null
+          : (input.freeReport?.trim() ?? null);
+
+        const [updated] = await tx
+          .update(caseStudy)
+          .set({ freeReport })
+          .where(eq(caseStudy.id, input.caseStudyId))
+          .returning({ id: caseStudy.id, freeReport: caseStudy.freeReport });
+
+        if (!updated) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Falha ao salvar o relatório livre",
+          });
+        }
+
+        return {
+          result: updated,
+          audit: {
+            action: "freeReport.update",
+            entityType: "freeReport",
+            entityId: input.caseStudyId,
+            before: { freeReport: existing.freeReport },
+            after: { freeReport: updated.freeReport },
           },
         };
       });
