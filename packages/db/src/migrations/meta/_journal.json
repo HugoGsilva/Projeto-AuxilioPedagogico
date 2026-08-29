@@ -15,6 +15,13 @@
       "when": 1786459608119,
       "tag": "0001_careless_shocker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788026344031,
+      "tag": "0002_broad_true_believers",
+      "breakpoints": true
     }
   ]
 }

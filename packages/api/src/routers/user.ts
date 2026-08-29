@@ -1,7 +1,6 @@
 import { db } from "@auxilio-pedagogico/db";
-import { account, session, user } from "@auxilio-pedagogico/db/schema/auth";
+import { session, user } from "@auxilio-pedagogico/db/schema/auth";
 import { TRPCError } from "@trpc/server";
-import { hashPassword } from "better-auth/crypto";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -47,83 +46,8 @@ export const userRouter = router({
     return rows;
   }),
 
-  create: auditedProcedure
-    .input(
-      z.object({
-        name: z.string().trim().min(2, "Nome muito curto"),
-        email: z.email("E-mail inválido"),
-        password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres"),
-        role: roleSchema,
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      assertCan(actorRole(ctx.session.user), "manageUsers");
-
-      return ctx.auditMutation(async (tx) => {
-        const existing = await tx
-          .select({ id: user.id })
-          .from(user)
-          .where(eq(user.email, input.email.toLowerCase()))
-          .limit(1);
-
-        if (existing[0]) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "Já existe um usuário com este e-mail",
-          });
-        }
-
-        const id = crypto.randomUUID();
-        const passwordHash = await hashPassword(input.password);
-        const now = new Date();
-
-        const [created] = await tx
-          .insert(user)
-          .values({
-            id,
-            name: input.name.trim(),
-            email: input.email.toLowerCase(),
-            emailVerified: true,
-            role: input.role,
-            active: true,
-          })
-          .returning({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            active: user.active,
-          });
-
-        if (!created) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Falha ao criar usuário",
-          });
-        }
-
-        await tx.insert(account).values({
-          id: crypto.randomUUID(),
-          accountId: id,
-          providerId: "credential",
-          userId: id,
-          password: passwordHash,
-          createdAt: now,
-          updatedAt: now,
-        });
-
-        return {
-          result: created,
-          audit: {
-            action: "user.create",
-            entityType: "user",
-            entityId: created.id,
-            after: created,
-          },
-        };
-      });
-    }),
-
+  // O cadastro direto com senha foi substituído pelo convite (issue #67):
+  // a conta é criada quando a pessoa aceita e define a própria senha.
   update: auditedProcedure
     .input(
       z.object({

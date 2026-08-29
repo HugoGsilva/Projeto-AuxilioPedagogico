@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -8,11 +9,17 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
-import { questionTypeEnum, shiftEnum } from "./enums";
+import {
+  invitationStatusEnum,
+  questionTypeEnum,
+  shiftEnum,
+  userRoleEnum,
+} from "./enums";
 
 /** Snapshot of a question at answer time — ADR-0003 */
 export type QuestionSnapshot = {
@@ -192,3 +199,42 @@ export const pdfSettings = pgTable("pdf_settings", {
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
 });
+
+/**
+ * Convite de usuário (issue #67). Diretora/TI convida por e-mail+papel; a
+ * pessoa aceita e define a própria senha. O token bruto vive só na URL — o
+ * banco guarda apenas o hash (sha256). Uso único; um pending por e-mail.
+ */
+export const invitation = pgTable(
+  "invitation",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    email: text("email").notNull(), // sempre lowercased na aplicação
+    name: text("name").notNull(),
+    role: userRoleEnum("role").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    status: invitationStatusEnum("status").default("pending").notNull(),
+    invitedById: text("invited_by_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    acceptedUserId: text("accepted_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    expiresAt: timestamp("expires_at").notNull(),
+    acceptedAt: timestamp("accepted_at"),
+    revokedAt: timestamp("revoked_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("invitation_token_hash_uid").on(table.tokenHash),
+    // No máximo um convite pendente por e-mail (índice único parcial).
+    uniqueIndex("invitation_email_pending_uid")
+      .on(table.email)
+      .where(sql`${table.status} = 'pending'`),
+    index("invitation_status_idx").on(table.status),
+  ],
+);
