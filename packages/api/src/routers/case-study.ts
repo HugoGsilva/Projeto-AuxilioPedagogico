@@ -158,6 +158,99 @@ export const caseStudyRouter = router({
       .orderBy(desc(caseStudy.updatedAt));
   }),
 
+  /**
+   * Agregado por aluno para a listagem: nº de estudos + completude do mais
+   * recente. Mesma régua da validação de saveAnswers: perguntas ativas e
+   * obrigatórias VIGENTES (não o snapshot — ADR-0003 congela só a exibição).
+   * Retorno esparso: aluno sem estudo não aparece em items.
+   */
+  completionByStudent: protectedProcedure.query(async ({ ctx }) => {
+    const actor = actorFromSession(ctx.session.user);
+    assertCan(actor.role, "viewCaseStudy");
+
+    const scopedToAssigned = actor.role === "teacher";
+    const assigned = scopedToAssigned
+      ? await assignedIdsForTeacher(actor.id)
+      : [];
+
+    const requiredActive = await db
+      .select({ id: question.id })
+      .from(question)
+      .where(and(eq(question.active, true), eq(question.required, true)));
+    const requiredIds = requiredActive.map((row) => row.id);
+
+    if (scopedToAssigned && assigned.length === 0) {
+      return { requiredTotal: requiredIds.length, items: [] };
+    }
+
+    const studies = await db
+      .select({
+        id: caseStudy.id,
+        studentId: caseStudy.studentId,
+      })
+      .from(caseStudy)
+      .where(
+        scopedToAssigned ? inArray(caseStudy.studentId, assigned) : undefined,
+      )
+      .orderBy(desc(caseStudy.createdAt), desc(caseStudy.id));
+
+    // Lista já ordenada: o primeiro estudo visto por aluno é o mais recente.
+    const byStudent = new Map<string, { latestId: string; count: number }>();
+    for (const row of studies) {
+      const entry = byStudent.get(row.studentId);
+      if (entry) {
+        entry.count += 1;
+      } else {
+        byStudent.set(row.studentId, { latestId: row.id, count: 1 });
+      }
+    }
+
+    const latestIds = [...byStudent.values()].map((entry) => entry.latestId);
+    const answers =
+      latestIds.length === 0 || requiredIds.length === 0
+        ? []
+        : await db
+            .select({
+              caseStudyId: answer.caseStudyId,
+              questionId: answer.questionId,
+              value: answer.value,
+            })
+            .from(answer)
+            .where(
+              and(
+                inArray(answer.caseStudyId, latestIds),
+                inArray(answer.questionId, requiredIds),
+              ),
+            );
+
+    const valuesByCaseStudy = new Map<string, Map<string, string | null>>();
+    for (const row of answers) {
+      const map =
+        valuesByCaseStudy.get(row.caseStudyId) ??
+        new Map<string, string | null>();
+      map.set(row.questionId, row.value);
+      valuesByCaseStudy.set(row.caseStudyId, map);
+    }
+
+    const items = [...byStudent.entries()].map(([studentId, entry]) => {
+      const values =
+        valuesByCaseStudy.get(entry.latestId) ??
+        new Map<string, string | null>();
+      const requiredFilled = requiredIds.filter(
+        (id) => !isBlankAnswerValue(values.get(id)),
+      ).length;
+      return {
+        studentId,
+        caseStudyCount: entry.count,
+        latestCaseStudyId: entry.latestId,
+        requiredFilled,
+        complete: requiredFilled === requiredIds.length,
+      };
+    });
+
+    return { requiredTotal: requiredIds.length, items };
+  }),
+
   listByStudent: protectedProcedure
     .input(caseStudyListByStudentSchema)
     .query(async ({ ctx, input }) => {
