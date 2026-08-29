@@ -10,7 +10,7 @@ import { Textarea } from "@auxilio-pedagogico/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ClipboardList } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/empty-state";
@@ -87,6 +87,11 @@ function CaseStudyFormPage() {
   });
 
   const [values, setValues] = useState<Record<string, string>>({});
+  const [freeReport, setFreeReport] = useState("");
+  /* O formulário só é semeado uma vez por estudo de caso: refetches da query
+   * (invalidação do form irmão, foco da janela) não podem sobrescrever texto
+   * digitado e ainda não salvo. */
+  const seededForRef = useRef<string | null>(null);
 
   const fields = useMemo((): FormField[] => {
     const answers = caseStudyQuery.data?.answers ?? [];
@@ -135,15 +140,18 @@ function CaseStudyFormPage() {
   const groups = useMemo(() => groupFields(fields), [fields]);
 
   useEffect(() => {
-    if (!caseStudyQuery.data) return;
+    if (!caseStudyQuery.data || !activeQuestionsQuery.data) return;
+    if (seededForRef.current === caseStudyQuery.data.id) return;
+    seededForRef.current = caseStudyQuery.data.id;
     const next: Record<string, string> = {};
     for (const answer of caseStudyQuery.data.answers) {
       next[answer.questionId] = answer.value ?? "";
     }
-    for (const question of activeQuestionsQuery.data ?? []) {
+    for (const question of activeQuestionsQuery.data) {
       if (!(question.id in next)) next[question.id] = "";
     }
     setValues(next);
+    setFreeReport(caseStudyQuery.data.freeReport ?? "");
   }, [activeQuestionsQuery.data, caseStudyQuery.data]);
 
   const saveMutation = useMutation(
@@ -159,13 +167,22 @@ function CaseStudyFormPage() {
          * mostra o "Atualizado em" recém-gravado. Sem studentId (a query do
          * estudo ainda não respondeu) fica na tela e só avisa. */
         const backTo = caseStudyQuery.data?.studentId;
-        if (backTo) {
+        /* Não sair da tela com relatório livre digitado e não salvo — a
+         * navegação descartaria o texto silenciosamente. */
+        const freeReportDirty =
+          freeReport !== (caseStudyQuery.data?.freeReport ?? "");
+        if (backTo && !freeReportDirty) {
           toast.success("Respostas salvas", {
             description: "O estudo de caso foi atualizado.",
           });
           await navigate({
             to: "/students/$studentId",
             params: { studentId: backTo },
+          });
+        } else if (freeReportDirty) {
+          toast.success("Respostas salvas", {
+            description:
+              "O relatório livre tem alterações não salvas — salve-o antes de sair.",
           });
         } else {
           toast.success("Respostas salvas");
@@ -186,6 +203,29 @@ function CaseStudyFormPage() {
           ? values[field.questionId]
           : null,
       })),
+    });
+  }
+
+  const freeReportMutation = useMutation(
+    trpc.caseStudy.saveFreeReport.mutationOptions({
+      onSuccess: async (saved) => {
+        toast.success("Relatório salvo");
+        // Reflete a normalização do servidor (trim/blank→null) no campo.
+        setFreeReport(saved.freeReport ?? "");
+        await queryClient.invalidateQueries(
+          trpc.caseStudy.byId.queryFilter({ id: caseStudyId }),
+        );
+      },
+      onError: (error) => toast.error(error.message),
+    }),
+  );
+
+  function onSubmitFreeReport(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canEdit) return;
+    freeReportMutation.mutate({
+      caseStudyId,
+      freeReport: freeReport.trim() ? freeReport : null,
     });
   }
 
@@ -362,6 +402,37 @@ function CaseStudyFormPage() {
               </div>
             </div>
           ) : null}
+        </form>
+      ) : null}
+
+      {!isLoading && !errorMessage && caseStudyQuery.data ? (
+        /* Form irmão do de respostas: o relatório livre é um campo do estudo
+         * de caso, salvo e auditado à parte (freeReport.update), e não pode
+         * ficar refém da validação `required` das perguntas estruturadas. */
+        <form onSubmit={onSubmitFreeReport}>
+          <Section
+            title="Relatório livre"
+            description="Observações detalhadas da professora: comportamento em sala, participação, dificuldades, avanços, estratégias pedagógicas, adaptações realizadas e necessidades de apoio."
+          >
+            <Field>
+              <FieldLabel htmlFor="free-report">
+                Observações da professora
+              </FieldLabel>
+              <Textarea
+                id="free-report"
+                className="min-h-40"
+                maxLength={20000}
+                value={freeReport}
+                disabled={!canEdit}
+                onChange={(e) => setFreeReport(e.target.value)}
+              />
+            </Field>
+            {canEdit ? (
+              <Button type="submit" disabled={freeReportMutation.isPending}>
+                {freeReportMutation.isPending ? "Salvando…" : "Salvar relatório"}
+              </Button>
+            ) : null}
+          </Section>
         </form>
       ) : null}
     </Page>

@@ -95,6 +95,25 @@ test.describe("Estudo de caso — preenchimento (E2E_WRITE=1)", () => {
     await page.goto(url);
     await expect(page.getByLabel(REQUIRED_RE)).toHaveValue(marker);
   });
+
+  test("salva o relatório livre sem preencher respostas e reabre", async ({
+    page,
+  }) => {
+    const marker = `Relatório E2E ${new Date().toISOString()}`;
+
+    await openStudentCaseStudies(page, SEED_STUDENTS.assigned);
+    const url = await createCaseStudy(page);
+
+    // Salva só o relatório livre: não depende das perguntas obrigatórias.
+    await page.getByLabel("Observações da professora").fill(marker);
+    await page.getByRole("button", { name: "Salvar relatório" }).click();
+    await expect(page.getByText("Relatório salvo")).toBeVisible();
+
+    await page.goto(url);
+    await expect(page.getByLabel("Observações da professora")).toHaveValue(
+      marker,
+    );
+  });
 });
 
 test.describe("Snapshot do enunciado — ADR-0003 (E2E_SNAPSHOT=1)", () => {

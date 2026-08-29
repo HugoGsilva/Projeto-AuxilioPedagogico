@@ -145,3 +145,17 @@ export const caseStudySaveAnswersSchema = z.object({
   caseStudyId: z.string().uuid(),
   answers: z.array(caseStudyAnswerInputSchema),
 });
+
+/** Teto de proteção — spec 4.6 não define limite; evita colar arquivos inteiros. */
+export const FREE_REPORT_MAX_LENGTH = 20_000;
+
+export const caseStudySaveFreeReportSchema = z.object({
+  caseStudyId: z.string().uuid(),
+  freeReport: z
+    .string()
+    .max(
+      FREE_REPORT_MAX_LENGTH,
+      "Relatório livre muito longo (máximo de 20.000 caracteres)",
+    )
+    .nullable(),
+});
