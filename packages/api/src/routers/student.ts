@@ -9,12 +9,10 @@ import { z } from "zod";
 
 import { auditedProcedure } from "../audit";
 import {
+  actorFromSession,
   assertCan,
   assertCanAccessStudent,
   can,
-  ROLES,
-  type Actor,
-  type Role,
 } from "../policy";
 import { protectedProcedure, router } from "../trpc";
 
@@ -32,20 +30,6 @@ const studentInputSchema = z.object({
   shift: shiftSchema.optional().nullable(),
   notes: z.string().trim().max(2000).optional().nullable(),
 });
-
-function actorFromSession(sessionUser: {
-  id: string;
-  role?: string | null;
-}): Actor {
-  const role = sessionUser.role;
-  if (!role || !ROLES.includes(role as Role)) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Perfil de usuário inválido",
-    });
-  }
-  return { id: sessionUser.id, role: role as Role };
-}
 
 async function assignedIdsForTeacher(teacherId: string): Promise<string[]> {
   const rows = await db

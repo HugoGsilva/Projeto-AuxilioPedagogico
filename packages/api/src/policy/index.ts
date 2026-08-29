@@ -1,3 +1,4 @@
+export { actorFromSession } from "./actor";
 export {
   canAccessStudent,
   canViewOrEditCaseStudy,

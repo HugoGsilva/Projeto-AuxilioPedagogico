@@ -9,22 +9,8 @@ import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { auditedProcedure } from "../audit";
-import { assertCan, ROLES, type Actor, type Role } from "../policy";
+import { actorFromSession, assertCan } from "../policy";
 import { protectedProcedure, router } from "../trpc";
-
-function actorFromSession(sessionUser: {
-  id: string;
-  role?: string | null;
-}): Actor {
-  const role = sessionUser.role;
-  if (!role || !ROLES.includes(role as Role)) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Perfil de usuário inválido",
-    });
-  }
-  return { id: sessionUser.id, role: role as Role };
-}
 
 export const studentAssignmentRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {

@@ -55,8 +55,9 @@ export const EXPECTED_NAV: Record<RoleKey, string[]> = {
     "Atribuições",
     "Perguntas",
     "Usuários",
+    "Configuração do PDF",
   ],
-  it_admin: ["Painel", "Perguntas", "Usuários"],
+  it_admin: ["Painel", "Perguntas", "Usuários", "Configuração do PDF"],
   pedagogue: ["Painel", "Alunos", "Estudos de caso", "Atribuições", "Perguntas"],
   teacher: ["Painel", "Alunos", "Estudos de caso"],
 };
@@ -65,6 +66,6 @@ export const EXPECTED_NAV: Record<RoleKey, string[]> = {
 export const FORBIDDEN_NAV: Record<RoleKey, string[]> = {
   director: [],
   it_admin: ["Alunos", "Estudos de caso", "Atribuições"],
-  pedagogue: ["Usuários"],
-  teacher: ["Atribuições", "Perguntas", "Usuários"],
+  pedagogue: ["Usuários", "Configuração do PDF"],
+  teacher: ["Atribuições", "Perguntas", "Usuários", "Configuração do PDF"],
 };

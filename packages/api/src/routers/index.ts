@@ -1,5 +1,6 @@
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { caseStudyRouter } from "./case-study";
+import { pdfSettingsRouter } from "./pdf-settings";
 import { questionRouter } from "./question";
 import { studentRouter } from "./student";
 import { studentAssignmentRouter } from "./student-assignment";
@@ -20,5 +21,6 @@ export const appRouter = router({
   studentAssignment: studentAssignmentRouter,
   question: questionRouter,
   caseStudy: caseStudyRouter,
+  pdfSettings: pdfSettingsRouter,
 });
 export type AppRouter = typeof appRouter;

@@ -63,6 +63,12 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | 2026-08-29 | Hugo | #14 | 1,0 | Consulta de estudos de caso por perfil: query `caseStudy.list` (join único, escopo da professora em SQL, `it_admin` FORBIDDEN), tela `/case-studies` com nav gated por `viewCaseStudy`; rename `case-studies_.$caseStudyId` (padrão de rota não aninhada); e2e de nav e de não-vazamento |
 | 2026-08-29 | Hugo | #48 | 1,5 | Completude na lista de alunos: query `caseStudy.completionByStudent` (3 queries fixas + merge reusando `isBlankAnswerValue` — mesma régua do `saveAnswers`), coluna "Estudo de caso" com pílula Completo/Incompleto/Sem estudo (erro de carga vira "—", não "Sem estudo"), "N de M obrigatórias" e barra (`Progress` novo em packages/ui, variant `pending` no Badge); e2e do ciclo incompleto→completo |
 
+## M6 — Geração de PDF
+
+| Data | Dev | Ref | Horas | Notas |
+| --- | --- | --- | --- | --- |
+| 2026-08-29 | Hugo | #16 | 1,0 | Configuração dos dados da escola no PDF: router `pdfSettings` (get + update auditado com before/after, upsert idempotente do singleton, gate `configurePdfSettings`), tela `/pdf-settings` (nome + dados institucionais — cabeçalho/rodapé ficam fora do MVP conforme mvp.md), nav para diretora/TI; e2e de 403 da pedagoga e de round-trip com restauração |
+
 ## M8 — Deploy e operação
 
 | Data | Dev | Ref | Horas | Notas |

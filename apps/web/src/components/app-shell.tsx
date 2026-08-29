@@ -7,6 +7,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import {
   ClipboardList,
+  FileCog,
   FileText,
   GraduationCap,
   LayoutDashboard,
@@ -73,6 +74,12 @@ const NAV_GROUPS: readonly NavGroup[] = [
         label: "Usuários",
         icon: UsersRound,
         permission: "manageUsers",
+      },
+      {
+        to: "/pdf-settings",
+        label: "Configuração do PDF",
+        icon: FileCog,
+        permission: "configurePdfSettings",
       },
     ],
   },

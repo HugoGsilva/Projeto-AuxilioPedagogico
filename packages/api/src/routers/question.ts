@@ -5,27 +5,13 @@ import { asc, eq, inArray, isNull, max } from "drizzle-orm";
 import { z } from "zod";
 
 import { auditedProcedure } from "../audit";
-import { assertCan, ROLES, type Actor, type Role } from "../policy";
+import { actorFromSession, assertCan } from "../policy";
 import { protectedProcedure, router } from "../trpc";
 import {
   questionCreateSchema,
   questionReorderSchema,
   questionUpdateSchema,
 } from "./question-schemas";
-
-function actorFromSession(sessionUser: {
-  id: string;
-  role?: string | null;
-}): Actor {
-  const role = sessionUser.role;
-  if (!role || !ROLES.includes(role as Role)) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Perfil de usuário inválido",
-    });
-  }
-  return { id: sessionUser.id, role: role as Role };
-}
 
 const questionSelect = {
   id: question.id,
