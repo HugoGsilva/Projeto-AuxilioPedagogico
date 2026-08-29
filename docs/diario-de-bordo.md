@@ -63,3 +63,4 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | 2026-08-23 | Hugo | #18 | 0,5 | CI publica imagens `web` e `server` no Docker Hub após checks na `main` |
 | 2026-08-23 | Hugo | #18 | 1,0 | Stack Portainer/Swarm (Traefik `extensao.hugogsilva.dev`) + migrate/seed no start da API |
 | 2026-08-23 | Hugo | #18 | 0,5 | Fix imagem server: Bun resolve `better-auth` a partir da raiz do monorepo |
+| 2026-08-29 | Hugo | #56 | 2,0 | Infra e2e Playwright (`apps/e2e`): smoke, auth, permissões (ADR-0002), responsivo e escrita opt-in (`E2E_WRITE`); sessões por perfil via `storageState`, retry de rate-limit do Better Auth |
