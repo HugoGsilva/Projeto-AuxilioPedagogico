@@ -71,6 +71,12 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | 2026-08-29 | Hugo | #49 | 0,5 | Botão "Gerar PDF" real na lista de alunos: usa o estudo mais recente (`completionByStudent`), habilita só com estudo completo (tooltip explica), download via Blob com toast de sucesso/erro; e2e do download com o mock do Gotenberg |
 | 2026-08-29 | Hugo | #15 | 2,0 | Template HTML + Gotenberg (ADR-0005): módulo `packages/api/src/pdf` (template TS com escape obrigatório e snapshot ADR-0003, formatação pt-BR; cliente com timeout e validação `%PDF`) + testes unitários; mutation `caseStudy.generatePdf` (gate `generatePdf`, conversão fora da transação, auditoria `pdfGeneration.create` só no sucesso, retorno base64); `GOTENBERG_URL` opcional no env; serviço `gotenberg` no stack (rede interna); mock local para dev sem Docker. UI liga no #49 |
 
+## M7 — Histórico de auditoria
+
+| Data | Dev | Ref | Horas | Notas |
+| --- | --- | --- | --- | --- |
+| 2026-08-29 | Hugo | #17 | 1,5 | Tela de auditoria: router `auditLog` (list com keyset por `(createdAt,id)`, filtros usuário/entidade/ação/período, escopo em SQL — professora presa ao próprio `userId` — e redação por linha para TI via `canViewAuditEntry`; `userOptions` para o filtro), tela `/audit-log` com rótulos PT, detalhes expandíveis e "Carregar mais"; testes unitários da redação e e2e (professora só vê as próprias; TI vê linha de aluno sem valores; diretora vê tudo). Pedagoga = acesso completo, seguindo a policy vigente (mudança exigiria ADR) |
+
 ## M8 — Deploy e operação
 
 | Data | Dev | Ref | Horas | Notas |

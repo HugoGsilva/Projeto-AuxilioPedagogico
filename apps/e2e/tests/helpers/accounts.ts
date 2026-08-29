@@ -52,14 +52,22 @@ export const EXPECTED_NAV: Record<RoleKey, string[]> = {
     "Painel",
     "Alunos",
     "Estudos de caso",
+    "Auditoria",
     "Atribuições",
     "Perguntas",
     "Usuários",
     "Configuração do PDF",
   ],
-  it_admin: ["Painel", "Perguntas", "Usuários", "Configuração do PDF"],
-  pedagogue: ["Painel", "Alunos", "Estudos de caso", "Atribuições", "Perguntas"],
-  teacher: ["Painel", "Alunos", "Estudos de caso"],
+  it_admin: ["Painel", "Auditoria", "Perguntas", "Usuários", "Configuração do PDF"],
+  pedagogue: [
+    "Painel",
+    "Alunos",
+    "Estudos de caso",
+    "Auditoria",
+    "Atribuições",
+    "Perguntas",
+  ],
+  teacher: ["Painel", "Alunos", "Estudos de caso", "Auditoria"],
 };
 
 /** Itens de navegação que NÃO devem aparecer para o papel. */
