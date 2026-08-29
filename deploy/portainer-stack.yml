@@ -84,6 +84,106 @@ services:
           cpus: "1"
           memory: 768M
 
+  # Backup diário criptografado enviado para object storage fora do VPS
+  # (ADR-0006). Sem porta pública — só cliente do Postgres na rede interna.
+  # Antes do deploy real: preencher os TROCAR_* (o serviço se recusa a subir
+  # com placeholder) e ver docs/backup.md.
+  backup:
+    image: postgres:16-alpine
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: auxilio_pedagogico
+      PGUSER: postgres
+      PGPASSWORD: AuxilioTest2026
+      BACKUP_HOUR_UTC: "06" # ~03:00 no horário de Brasília
+      BACKUP_RETENTION_DAYS: "30"
+      BACKUP_PASSPHRASE: TROCAR_PASSPHRASE_FORTE
+      BACKUP_REMOTE_PATH: "remote:TROCAR_BUCKET/auxilio-pedagogico"
+      RCLONE_CONFIG_REMOTE_TYPE: s3
+      RCLONE_CONFIG_REMOTE_PROVIDER: Cloudflare
+      RCLONE_CONFIG_REMOTE_ENDPOINT: TROCAR_ENDPOINT_S3
+      RCLONE_CONFIG_REMOTE_ACCESS_KEY_ID: TROCAR_ACCESS_KEY_ID
+      RCLONE_CONFIG_REMOTE_SECRET_ACCESS_KEY: TROCAR_SECRET_ACCESS_KEY
+      RCLONE_CONFIG_REMOTE_REGION: auto
+    volumes:
+      - backup_state:/state
+    networks:
+      - internal
+    healthcheck:
+      # Unhealthy se o último sucesso tiver mais de 36h — visível no Portainer.
+      test:
+        [
+          "CMD-SHELL",
+          "test -f /state/last-success && [ $$(( $$(date -u +%s) - $$(cat /state/last-success) )) -lt 129600 ]",
+        ]
+      interval: 1h
+      timeout: 10s
+      retries: 1
+      start_period: 26h
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 60s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    command:
+      - sh
+      - -c
+      - |
+        set -u
+        log() { echo "[backup] $$(date -u +%Y-%m-%dT%H:%M:%SZ) $$1"; }
+        for v in "$$BACKUP_PASSPHRASE" "$$BACKUP_REMOTE_PATH" "$$RCLONE_CONFIG_REMOTE_ENDPOINT" "$$RCLONE_CONFIG_REMOTE_ACCESS_KEY_ID" "$$RCLONE_CONFIG_REMOTE_SECRET_ACCESS_KEY"; do
+          case "$$v" in *TROCAR_*|"") log "ERRO: configuracao de backup incompleta (placeholder TROCAR_* pendente)"; exit 1;; esac
+        done
+        apk add --no-cache openssl rclone >/dev/null 2>&1 || { log "ERRO: apk add falhou"; exit 1; }
+        mkdir -p /state
+        backup_once() {
+          ts="$$(date -u +%Y%m%d-%H%M%S)"
+          name="auxilio_pedagogico_$${ts}.dump.enc"
+          tmp="/tmp/$${name}"
+          if ! pg_dump -Fc -f /tmp/db.dump "$$PGDATABASE"; then
+            log "FALHA: pg_dump"; rm -f /tmp/db.dump; return 1
+          fi
+          if ! [ -s /tmp/db.dump ]; then
+            log "FALHA: dump vazio"; rm -f /tmp/db.dump; return 1
+          fi
+          if ! openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt -pass env:BACKUP_PASSPHRASE -in /tmp/db.dump -out "$${tmp}.part"; then
+            log "FALHA: criptografia"; rm -f /tmp/db.dump "$${tmp}.part"; return 1
+          fi
+          if ! mv "$${tmp}.part" "$$tmp"; then
+            log "FALHA: mv do arquivo criptografado"; rm -f /tmp/db.dump "$${tmp}.part"; return 1
+          fi
+          rm -f /tmp/db.dump
+          if ! rclone copyto "$$tmp" "$$BACKUP_REMOTE_PATH/$$name" --checksum; then
+            log "FALHA: upload"; rm -f "$$tmp"; return 1
+          fi
+          rm -f "$$tmp"
+          rclone delete "$$BACKUP_REMOTE_PATH" --min-age "$${BACKUP_RETENTION_DAYS}d" || log "AVISO: limpeza de retencao falhou"
+          date -u +%s > /state/last-success
+          log "SUCESSO $$name"
+        }
+        log "job iniciado; alvo diario $${BACKUP_HOUR_UTC}:00 UTC"
+        last_run_date=""
+        if [ -f /state/last-run-date ]; then last_run_date="$$(cat /state/last-run-date)"; fi
+        while true; do
+          today="$$(date -u +%Y-%m-%d)"
+          hour="$$(date -u +%H)"
+          if [ "$$hour" -ge "$$BACKUP_HOUR_UTC" ] && [ "$$today" != "$$last_run_date" ]; then
+            if backup_once; then
+              last_run_date="$$today"
+              echo "$$today" > /state/last-run-date
+            else
+              log "tentativa falhou; proxima em ~30min"
+              sleep 1500
+            fi
+          fi
+          sleep 300
+        done
+
   web:
     image: hugogsilva/auxilio-pedagogico-web:latest
     networks:
@@ -119,3 +219,4 @@ networks:
 
 volumes:
   postgres_data:
+  backup_state:

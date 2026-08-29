@@ -85,3 +85,4 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | 2026-08-23 | Hugo | #18 | 1,0 | Stack Portainer/Swarm (Traefik `extensao.hugogsilva.dev`) + migrate/seed no start da API |
 | 2026-08-23 | Hugo | #18 | 0,5 | Fix imagem server: Bun resolve `better-auth` a partir da raiz do monorepo |
 | 2026-08-29 | Hugo | #56 | 2,0 | Infra e2e Playwright (`apps/e2e`): smoke, auth, permissões (ADR-0002), responsivo e escrita opt-in (`E2E_WRITE`); sessões por perfil via `storageState`, retry de rate-limit do Better Auth |
+| 2026-08-29 | Hugo | #19 | 1,0 | Backup diário criptografado off-site (ADR-0006): serviço `backup` no stack (pg_dump -Fc → openssl aes-256-cbc pbkdf2 → rclone S3, retenção 30d, healthcheck de 36h, recusa placeholders TROCAR_*, só rede interna); `docs/backup.md` com setup e runbook de restore; teste de restore executado localmente (round-trip criptográfico byte-idêntico + contagens idênticas pós-pg_restore) |
