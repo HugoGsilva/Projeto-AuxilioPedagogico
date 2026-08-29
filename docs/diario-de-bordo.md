@@ -61,6 +61,7 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | 2026-08-24 | Hugo | — | 1,0 | Correção do 403 recorrente do `it_admin` (painel chamava `question.listActive`, que exige `viewCaseStudy`, para todos os papéis; o `QueryCache.onError` global virava o toast "Permissão negada"); salvar respostas volta para a lista de estudos de caso do aluno; seção da pergunta vira select das seções existentes + "Nova seção", evitando grupos duplicados por acento/caixa |
 | 2026-08-29 | Hugo | #13 | 1,0 | Relatório livre da professora: mutation `caseStudy.saveFreeReport` auditada com before/after (`freeReport.update`), campo exposto só no detalhe (`byId`), seção própria na tela do estudo com salvamento independente das respostas; teste e2e de escrita |
 | 2026-08-29 | Hugo | #14 | 1,0 | Consulta de estudos de caso por perfil: query `caseStudy.list` (join único, escopo da professora em SQL, `it_admin` FORBIDDEN), tela `/case-studies` com nav gated por `viewCaseStudy`; rename `case-studies_.$caseStudyId` (padrão de rota não aninhada); e2e de nav e de não-vazamento |
+| 2026-08-29 | Hugo | #48 | 1,5 | Completude na lista de alunos: query `caseStudy.completionByStudent` (3 queries fixas + merge reusando `isBlankAnswerValue` — mesma régua do `saveAnswers`), coluna "Estudo de caso" com pílula Completo/Incompleto/Sem estudo (erro de carga vira "—", não "Sem estudo"), "N de M obrigatórias" e barra (`Progress` novo em packages/ui, variant `pending` no Badge); e2e do ciclo incompleto→completo |
 
 ## M8 — Deploy e operação
 

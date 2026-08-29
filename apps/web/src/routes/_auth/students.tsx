@@ -6,7 +6,9 @@ import {
 import { Callout } from "@auxilio-pedagogico/ui/components/callout";
 import { Field, FieldLabel } from "@auxilio-pedagogico/ui/components/field";
 import { Input } from "@auxilio-pedagogico/ui/components/input";
+import { Progress } from "@auxilio-pedagogico/ui/components/progress";
 import { Select } from "@auxilio-pedagogico/ui/components/select";
+import { Skeleton } from "@auxilio-pedagogico/ui/components/skeleton";
 import {
   Table,
   TableBody,
@@ -27,7 +29,7 @@ import {
   Power,
   Search,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/empty-state";
@@ -63,6 +65,63 @@ type Student = {
   active: boolean;
 };
 
+type CompletionEntry = {
+  caseStudyCount: number;
+  requiredFilled: number;
+  complete: boolean;
+};
+
+/** Pílula + progresso do estudo de caso mais recente do aluno. */
+function CaseStudyStatusCell({
+  entry,
+  requiredTotal,
+  isPending,
+  isError,
+}: {
+  entry: CompletionEntry | undefined;
+  requiredTotal: number;
+  isPending: boolean;
+  isError: boolean;
+}) {
+  if (isPending) return <Skeleton className="h-5 w-24" />;
+  if (isError) {
+    /* Falha de carregamento ≠ "sem estudo": não induzir a criar estudo novo. */
+    return (
+      <Badge variant="outline" title="Não foi possível carregar a completude">
+        —
+      </Badge>
+    );
+  }
+  if (!entry) return <Badge variant="muted">Sem estudo</Badge>;
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        <Badge variant={entry.complete ? "success" : "pending"}>
+          {entry.complete ? "Completo" : "Incompleto"}
+        </Badge>
+        {entry.caseStudyCount > 1 ? (
+          <span className="text-xs text-muted-foreground">
+            {entry.caseStudyCount} estudos
+          </span>
+        ) : null}
+      </div>
+      {requiredTotal > 0 ? (
+        <div className="flex w-40 items-center gap-2">
+          <Progress
+            value={entry.requiredFilled}
+            max={requiredTotal}
+            aria-label={`${entry.requiredFilled} de ${requiredTotal} perguntas obrigatórias respondidas`}
+            className="w-16 shrink-0"
+          />
+          <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+            {entry.requiredFilled} de {requiredTotal} obrigatórias
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function StudentsPage() {
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
@@ -76,6 +135,26 @@ function StudentsPage() {
     ...trpc.student.list.queryOptions(),
     enabled: Boolean(session?.user?.id),
   });
+
+  /* Gated no client (padrão do dashboard): it_admin pode abrir /students por
+   * URL e não deve disparar uma segunda query fadada ao 403. */
+  const completionQuery = useQuery({
+    ...trpc.caseStudy.completionByStudent.queryOptions(),
+    enabled: Boolean(session?.user?.id) && canViewCaseStudies,
+  });
+  const completionByStudent = useMemo(
+    () =>
+      new Map(
+        (completionQuery.data?.items ?? []).map((item) => [
+          item.studentId,
+          item,
+        ]),
+      ),
+    [completionQuery.data],
+  );
+  const requiredTotal = completionQuery.data?.requiredTotal ?? 0;
+  const completionPending = completionQuery.isPending;
+  const completionError = completionQuery.isError;
 
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -365,6 +444,9 @@ function StudentsPage() {
                           <TableHead>Turma</TableHead>
                           <TableHead>Responsável</TableHead>
                           <TableHead>Situação</TableHead>
+                          {canViewCaseStudies ? (
+                            <TableHead>Estudo de caso</TableHead>
+                          ) : null}
                           <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -388,6 +470,16 @@ function StudentsPage() {
                                 {s.active ? "Ativo" : "Inativo"}
                               </Badge>
                             </TableCell>
+                            {canViewCaseStudies ? (
+                              <TableCell>
+                                <CaseStudyStatusCell
+                                  entry={completionByStudent.get(s.id)}
+                                  requiredTotal={requiredTotal}
+                                  isPending={completionPending}
+                                  isError={completionError}
+                                />
+                              </TableCell>
+                            ) : null}
                             <TableCell>
                               <div className="flex items-center justify-end gap-1.5">
                                 {canViewCaseStudies ? (
@@ -486,6 +578,14 @@ function StudentsPage() {
                         <p className="text-sm text-muted-foreground">
                           Responsável: {s.guardian ?? "—"}
                         </p>
+                        {canViewCaseStudies ? (
+                          <CaseStudyStatusCell
+                            entry={completionByStudent.get(s.id)}
+                            requiredTotal={requiredTotal}
+                            isPending={completionPending}
+                            isError={completionError}
+                          />
+                        ) : null}
                         <div className="flex items-center gap-2">
                           {canViewCaseStudies ? (
                             <Link

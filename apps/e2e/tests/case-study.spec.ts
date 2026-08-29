@@ -114,6 +114,35 @@ test.describe("Estudo de caso — preenchimento (E2E_WRITE=1)", () => {
       marker,
     );
   });
+
+  test("lista de alunos mostra a completude do estudo mais recente", async ({
+    page,
+  }) => {
+    await openStudentCaseStudies(page, SEED_STUDENTS.assigned);
+    const url = await createCaseStudy(page);
+
+    // Recém-criado, sem respostas: pílula "Incompleto" na lista de alunos.
+    const studentRow = () =>
+      page.getByRole("row", { name: new RegExp(SEED_STUDENTS.assigned) });
+    await page.goto("/students");
+    await expect(
+      studentRow().getByText("Incompleto", { exact: true }),
+    ).toBeVisible();
+
+    // Preenche as obrigatórias e salva (espera o form renderizar de fato —
+    // o heading aparece antes das queries resolverem).
+    await page.goto(url);
+    await expect(page.getByLabel(REQUIRED_RE)).toBeVisible();
+    await fillRequiredFields(page);
+    await page.getByRole("button", { name: "Salvar respostas" }).click();
+    await expect(page.getByText("Respostas salvas")).toBeVisible();
+
+    // A lista reflete "Completo" para o estudo mais recente.
+    await page.goto("/students");
+    await expect(
+      studentRow().getByText("Completo", { exact: true }),
+    ).toBeVisible();
+  });
 });
 
 test.describe("Snapshot do enunciado — ADR-0003 (E2E_SNAPSHOT=1)", () => {
