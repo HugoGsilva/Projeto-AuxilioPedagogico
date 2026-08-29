@@ -68,6 +68,7 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | Data | Dev | Ref | Horas | Notas |
 | --- | --- | --- | --- | --- |
 | 2026-08-29 | Hugo | #16 | 1,0 | Configuração dos dados da escola no PDF: router `pdfSettings` (get + update auditado com before/after, upsert idempotente do singleton, gate `configurePdfSettings`), tela `/pdf-settings` (nome + dados institucionais — cabeçalho/rodapé ficam fora do MVP conforme mvp.md), nav para diretora/TI; e2e de 403 da pedagoga e de round-trip com restauração |
+| 2026-08-29 | Hugo | #49 | 0,5 | Botão "Gerar PDF" real na lista de alunos: usa o estudo mais recente (`completionByStudent`), habilita só com estudo completo (tooltip explica), download via Blob com toast de sucesso/erro; e2e do download com o mock do Gotenberg |
 | 2026-08-29 | Hugo | #15 | 2,0 | Template HTML + Gotenberg (ADR-0005): módulo `packages/api/src/pdf` (template TS com escape obrigatório e snapshot ADR-0003, formatação pt-BR; cliente com timeout e validação `%PDF`) + testes unitários; mutation `caseStudy.generatePdf` (gate `generatePdf`, conversão fora da transação, auditoria `pdfGeneration.create` só no sucesso, retorno base64); `GOTENBERG_URL` opcional no env; serviço `gotenberg` no stack (rede interna); mock local para dev sem Docker. UI liga no #49 |
 
 ## M8 — Deploy e operação

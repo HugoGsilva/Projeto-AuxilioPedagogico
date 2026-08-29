@@ -24,6 +24,7 @@ import {
   FileDown,
   GraduationCap,
   Info,
+  LoaderCircle,
   Pencil,
   Plus,
   Power,
@@ -37,6 +38,7 @@ import { Page, PageHeader, Section } from "@/components/page";
 import { QueryState } from "@/components/query-state";
 import { useRole } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
+import { downloadBase64File } from "@/lib/download";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_auth/students")({
@@ -67,9 +69,59 @@ type Student = {
 
 type CompletionEntry = {
   caseStudyCount: number;
+  latestCaseStudyId: string;
   requiredFilled: number;
   complete: boolean;
 };
+
+/** Botão de Gerar PDF — fonte única de title/disabled para desktop e mobile. */
+function GeneratePdfButton({
+  entry,
+  requesting,
+  anyRequesting,
+  completionPending,
+  completionError,
+  onGenerate,
+  variant,
+  size,
+}: {
+  entry: CompletionEntry | undefined;
+  /** Geração em andamento PARA ESTA LINHA (spinner). */
+  requesting: boolean;
+  /** Alguma geração em andamento na tela (bloqueia cliques concorrentes). */
+  anyRequesting: boolean;
+  completionPending: boolean;
+  completionError: boolean;
+  onGenerate: () => void;
+  variant: "ghost" | "outline";
+  size: "icon-sm" | "icon";
+}) {
+  const ready = Boolean(entry?.complete);
+  const title = requesting
+    ? "Gerando PDF…"
+    : anyRequesting
+      ? "Aguarde a geração em andamento"
+      : completionPending
+        ? "Carregando a situação do estudo de caso…"
+        : completionError
+          ? "Não foi possível carregar a situação do estudo de caso"
+          : ready
+            ? "Gerar PDF do estudo de caso"
+            : "Disponível quando o estudo de caso estiver completo";
+  return (
+    <Button
+      variant={variant}
+      size={size}
+      aria-label="Gerar PDF do estudo de caso"
+      aria-busy={requesting}
+      title={title}
+      disabled={!ready || anyRequesting}
+      onClick={onGenerate}
+    >
+      {requesting ? <LoaderCircle className="animate-spin" /> : <FileDown />}
+    </Button>
+  );
+}
 
 /** Pílula + progresso do estudo de caso mais recente do aluno. */
 function CaseStudyStatusCell({
@@ -250,10 +302,28 @@ function StudentsPage() {
     }
   }
 
-  function notifyPdfUnavailable() {
-    toast.info("Geração de PDF ainda não disponível.", {
-      description: "Chega em uma próxima atualização.",
-    });
+  const generatePdfMutation = useMutation(
+    trpc.caseStudy.generatePdf.mutationOptions({
+      onSuccess: (pdf) => {
+        downloadBase64File(pdf.fileName, pdf.base64, pdf.mimeType);
+        toast.success("PDF gerado", {
+          description: "O download do estudo de caso começou.",
+        });
+      },
+      onError: (error) => toast.error(error.message),
+    }),
+  );
+
+  function generatePdfFor(studentId: string) {
+    const entry = completionByStudent.get(studentId);
+    if (!entry?.complete) {
+      toast.info("Complete o estudo de caso antes de gerar o PDF.", {
+        description:
+          "Todas as perguntas obrigatórias precisam estar respondidas.",
+      });
+      return;
+    }
+    generatePdfMutation.mutate({ id: entry.latestCaseStudyId });
   }
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -495,15 +565,21 @@ function StudentsPage() {
                                   </Link>
                                 ) : null}
                                 {canGeneratePdf ? (
-                                  <Button
+                                  <GeneratePdfButton
+                                    entry={completionByStudent.get(s.id)}
+                                    requesting={
+                                      generatePdfMutation.isPending &&
+                                      generatePdfMutation.variables?.id ===
+                                        completionByStudent.get(s.id)
+                                          ?.latestCaseStudyId
+                                    }
+                                    anyRequesting={generatePdfMutation.isPending}
+                                    completionPending={completionPending}
+                                    completionError={completionError}
+                                    onGenerate={() => generatePdfFor(s.id)}
                                     variant="ghost"
                                     size="icon-sm"
-                                    aria-label="Gerar PDF do estudo de caso"
-                                    title="Gerar PDF do estudo de caso"
-                                    onClick={notifyPdfUnavailable}
-                                  >
-                                    <FileDown />
-                                  </Button>
+                                  />
                                 ) : null}
                                 {canManage ? (
                                   <>
@@ -600,15 +676,21 @@ function StudentsPage() {
                             </Link>
                           ) : null}
                           {canGeneratePdf ? (
-                            <Button
+                            <GeneratePdfButton
+                              entry={completionByStudent.get(s.id)}
+                              requesting={
+                                generatePdfMutation.isPending &&
+                                generatePdfMutation.variables?.id ===
+                                  completionByStudent.get(s.id)
+                                    ?.latestCaseStudyId
+                              }
+                              anyRequesting={generatePdfMutation.isPending}
+                              completionPending={completionPending}
+                              completionError={completionError}
+                              onGenerate={() => generatePdfFor(s.id)}
                               variant="outline"
                               size="icon"
-                              aria-label="Gerar PDF do estudo de caso"
-                              title="Gerar PDF do estudo de caso"
-                              onClick={notifyPdfUnavailable}
-                            >
-                              <FileDown />
-                            </Button>
+                            />
                           ) : null}
                           {canManage ? (
                             <Button
