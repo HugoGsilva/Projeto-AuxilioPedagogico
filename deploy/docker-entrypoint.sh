@@ -14,6 +14,9 @@ until bun packages/db/src/migrate.ts; do
   sleep 2
 done
 
+echo "[api] perguntas padrão do estudo de caso (idempotente; só com a tabela vazia)"
+bun packages/db/src/seed-questions.ts
+
 if [ "${ALLOW_SEED:-false}" = "true" ]; then
   echo "[api] ALLOW_SEED=true — seed idempotente"
   bun packages/db/src/seed.ts

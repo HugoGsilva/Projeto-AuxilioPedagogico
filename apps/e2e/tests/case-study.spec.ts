@@ -7,9 +7,15 @@ import {
   WRITE_ENABLED,
 } from "./helpers/auth";
 
-/** Enunciado seed da pergunta obrigatória (packages/db/src/seed.ts). */
-const REQUIRED_PROMPT = "Quais dificuldades o(a) aluno(a) apresenta em sala?";
-const REQUIRED_RE = new RegExp(REQUIRED_PROMPT.slice(0, 20));
+/** Enunciado seed da pergunta obrigatória (packages/db/src/default-questions.ts). */
+const REQUIRED_PROMPT =
+  "Quais são as principais demandas do aluno no contexto escolar (pedagógicas, de comunicação, de interação, de locomoção ou de cuidado)?";
+/**
+ * Casa a obrigatória do seed universal E a do seed antigo: bancos já semeados
+ * (ex.: homologação) mantêm as perguntas antigas, pois o seed universal só roda
+ * com a tabela vazia. O teste de snapshot (homologação dedicada) usa o exato.
+ */
+const REQUIRED_RE = /Quais são as princip|Quais dificuldades o/;
 
 /** Abre a tela de estudos de caso de um aluno pelo nome. */
 async function openStudentCaseStudies(page: Page, studentName: string) {
