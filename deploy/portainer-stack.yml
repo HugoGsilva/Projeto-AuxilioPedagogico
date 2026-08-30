@@ -40,6 +40,12 @@ services:
       ALLOW_SEED: "true"
       SEED_PASSWORD: Dev@12345
       GOTENBERG_URL: http://gotenberg:3000
+      # Conta "mãe" de diretora no 1º deploy real (opcional; idempotente — não
+      # altera conta existente). Preencher e descomentar; o script recusa
+      # placeholders TROCAR_* e senha com menos de 8 caracteres.
+      # BOOTSTRAP_DIRECTOR_EMAIL: diretora@escola.exemplo.br
+      # BOOTSTRAP_DIRECTOR_NAME: Nome da Diretora
+      # BOOTSTRAP_DIRECTOR_PASSWORD: TROCAR_SENHA_FORTE
     networks:
       - internal
       - network_swarm_public
