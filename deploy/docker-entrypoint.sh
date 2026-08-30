@@ -22,5 +22,8 @@ if [ "${ALLOW_SEED:-false}" = "true" ]; then
   bun packages/db/src/seed.ts
 fi
 
+echo "[api] bootstrap da diretora (BOOTSTRAP_DIRECTOR_*, idempotente)"
+bun packages/db/src/bootstrap-director.ts
+
 # Resolver pacotes a partir da raiz do monorepo (Bun workspace).
 exec bun apps/server/dist/index.mjs
