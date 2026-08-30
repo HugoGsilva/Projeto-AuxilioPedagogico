@@ -7,8 +7,9 @@ import {
   WRITE_ENABLED,
 } from "./helpers/auth";
 
-/** Enunciado seed da pergunta obrigatória (packages/db/src/seed.ts). */
-const REQUIRED_PROMPT = "Quais dificuldades o(a) aluno(a) apresenta em sala?";
+/** Enunciado seed da pergunta obrigatória (packages/db/src/default-questions.ts). */
+const REQUIRED_PROMPT =
+  "Quais são as principais demandas do aluno no contexto escolar (pedagógicas, de comunicação, de interação, de locomoção ou de cuidado)?";
 const REQUIRED_RE = new RegExp(REQUIRED_PROMPT.slice(0, 20));
 
 /** Abre a tela de estudos de caso de um aluno pelo nome. */
