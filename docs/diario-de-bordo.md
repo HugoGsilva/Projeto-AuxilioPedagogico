@@ -43,6 +43,7 @@ Registro **append-only** do esforço gasto em cada entrega. Regras:
 | --- | --- | --- | --- | --- |
 | 2026-08-13 | Hugo | #10 | 1,0 | CRUD de perguntas (tipos, opções, ativar/desativar) + auditoria |
 | 2026-08-13 | Hugo | #11 | 0,5 | UI de ordenação e agrupamento por seção (`sortOrder`) |
+| 2026-08-29 | Hugo | #70 | 0,5 | Seed universal de perguntas padrão (`default-questions.ts`): 19 perguntas em 6 seções numeradas cobrindo as 4 etapas do estudo de caso (Decreto 12.686/2025, art. 11) + participação da família/aluno + encaminhamentos; idempotente (só com `question` vazia, advisory lock), roda em todo start da API e é reusado pelo seed de dev (saem os 3 exemplos genéricos); testes de invariantes |
 
 ## M5 — Estudo de caso
 
