@@ -1,5 +1,6 @@
 /**
- * Seed de usuários/alunos/perguntas.
+ * Seed de usuários/alunos (fixtures de dev). As perguntas padrão do estudo de
+ * caso vêm do seed universal (`default-questions.ts`), reusado aqui.
  *
  * Uso local: `bun run db:seed` (Postgres no ar + schema aplicado).
  * Na VPS: ALLOW_SEED=true e SEED_PASSWORD no stack (idempotente).
@@ -13,14 +14,10 @@ import { inArray } from "drizzle-orm";
 dotenv.config({ path: "../../apps/server/.env" });
 
 const { db } = await import("./index");
-const {
-  account,
-  user,
-  student,
-  studentAssignment,
-  question,
-  pdfSettings,
-} = await import("./schema");
+const { seedDefaultQuestions } = await import("./default-questions");
+const { account, user, student, studentAssignment, pdfSettings } = await import(
+  "./schema"
+);
 
 function resolveSeedPassword(): string {
   const fromEnv = process.env.SEED_PASSWORD?.trim();
@@ -69,6 +66,11 @@ async function seed() {
   }
 
   const seedPassword = resolveSeedPassword();
+
+  // Perguntas vêm do seed universal (default-questions), não deste seed de dev.
+  if ((await seedDefaultQuestions(db)) === "seeded") {
+    console.log("Perguntas padrão do estudo de caso criadas.");
+  }
 
   const seedIds = USERS.map((u) => u.id);
   const existingSeedUsers = await db
@@ -142,34 +144,6 @@ async function seed() {
       teacherId: "seed_teacher",
       assignedById: "seed_pedagogue",
     });
-
-    await tx.insert(question).values([
-      {
-        prompt: "Quais dificuldades o(a) aluno(a) apresenta em sala?",
-        type: "long_text",
-        section: "Informações pedagógicas",
-        sortOrder: 1,
-        required: true,
-        active: true,
-      },
-      {
-        prompt: "Turno de maior dificuldade de concentração",
-        type: "select",
-        section: "Informações pedagógicas",
-        sortOrder: 2,
-        required: false,
-        active: true,
-        options: ["Manhã", "Tarde", "Integral", "Não se aplica"],
-      },
-      {
-        prompt: "Data da última avaliação pedagógica",
-        type: "date",
-        section: "Evolução do aluno",
-        sortOrder: 1,
-        required: false,
-        active: true,
-      },
-    ]);
 
     await tx.insert(pdfSettings).values({
       schoolName: "Escola Municipal Seed",
