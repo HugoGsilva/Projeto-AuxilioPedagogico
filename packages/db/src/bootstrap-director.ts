@@ -46,27 +46,34 @@ async function bootstrapDirector() {
     );
   }
 
-  const [existing] = await db
-    .select({ id: user.id, role: user.role })
-    .from(user)
-    .where(sql`lower(${user.email}) = ${email}`)
-    .limit(1);
-
-  if (existing) {
-    if (existing.role !== "director") {
-      console.warn(
-        `AVISO: ${email} já existe com papel "${existing.role}" — nada foi alterado.`,
-      );
-    } else {
-      console.log(`Diretora ${email} já existe — nada a fazer (senha não é alterada por env).`);
-    }
-    return;
-  }
-
   const passwordHash = await hashPassword(password);
   const userId = crypto.randomUUID();
 
+  // Checagem e INSERT na mesma transação, com advisory lock: duas réplicas
+  // subindo juntas não podem passar ambas pelo check e uma morrer no unique.
+  let created = false;
   await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(420002)`);
+
+    const [existing] = await tx
+      .select({ id: user.id, role: user.role })
+      .from(user)
+      .where(sql`lower(${user.email}) = ${email}`)
+      .limit(1);
+
+    if (existing) {
+      if (existing.role !== "director") {
+        console.warn(
+          `AVISO: ${email} já existe com papel "${existing.role}" — nada foi alterado.`,
+        );
+      } else {
+        console.log(
+          `Diretora ${email} já existe — nada a fazer (senha não é alterada por env).`,
+        );
+      }
+      return;
+    }
+
     await tx.insert(user).values({
       id: userId,
       name,
@@ -90,9 +97,10 @@ async function bootstrapDirector() {
       entityId: userId,
       after: { name, email, role: "director", source: "bootstrap_env" },
     });
+    created = true;
   });
 
-  console.log(`Conta de diretora criada: ${email}`);
+  if (created) console.log(`Conta de diretora criada: ${email}`);
 }
 
 bootstrapDirector()
